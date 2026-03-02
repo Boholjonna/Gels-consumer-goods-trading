@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
 import { StatsCard } from '@/components/StatsCard';
 import { OrderCard } from '@/components/OrderCard';
@@ -10,13 +11,14 @@ export function DashboardPage() {
   const { orders, loading, error, refetch } = useRealtimeOrders();
   const navigate = useNavigate();
 
-  const pendingOrders = orders.filter((o) => o.status === 'pending');
-  const todayOrders = orders.filter((o) => {
+  const { pendingOrders, todayOrders, todayRevenue, activeCollectors } = useMemo(() => {
     const today = new Date().toDateString();
-    return new Date(o.created_at).toDateString() === today;
-  });
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + o.total_amount, 0);
-  const activeCollectors = new Set(todayOrders.map((o) => o.collector_id)).size;
+    const pending = orders.filter((o) => o.status === 'pending');
+    const todayOrd = orders.filter((o) => new Date(o.created_at).toDateString() === today);
+    const revenue = todayOrd.reduce((sum, o) => sum + o.total_amount, 0);
+    const collectors = new Set(todayOrd.map((o) => o.collector_id)).size;
+    return { pendingOrders: pending, todayOrders: todayOrd, todayRevenue: revenue, activeCollectors: collectors };
+  }, [orders]);
 
   if (error) {
     return (

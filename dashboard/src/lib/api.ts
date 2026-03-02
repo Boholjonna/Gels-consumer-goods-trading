@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1';
+const REQUEST_TIMEOUT_MS = 30000;
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession();
@@ -13,9 +14,18 @@ async function getAuthHeaders(): Promise<Record<string, string>> {
   };
 }
 
+function withTimeout(ms: number): AbortSignal {
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), ms);
+  return controller.signal;
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const headers = await getAuthHeaders();
-  const res = await fetch(`${API_BASE_URL}${path}`, { headers });
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers,
+    signal: withTimeout(REQUEST_TIMEOUT_MS),
+  });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(error.detail || 'Request failed');
@@ -29,6 +39,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     method: 'POST',
     headers,
     body: JSON.stringify(body),
+    signal: withTimeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
@@ -43,6 +54,7 @@ export async function apiPut<T>(path: string, body: unknown): Promise<T> {
     method: 'PUT',
     headers,
     body: JSON.stringify(body),
+    signal: withTimeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
@@ -57,6 +69,7 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     method: 'PATCH',
     headers,
     body: JSON.stringify(body),
+    signal: withTimeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
@@ -70,6 +83,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'DELETE',
     headers,
+    signal: withTimeout(REQUEST_TIMEOUT_MS),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
@@ -87,6 +101,7 @@ export async function apiUpload<T>(path: string, file: File): Promise<T> {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${session.access_token}` },
     body: formData,
+    signal: withTimeout(60000), // Longer timeout for uploads
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));

@@ -57,6 +57,19 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
       return;
     }
 
+    const parsedPrice = parseFloat(price);
+    const parsedStock = parseInt(stockQuantity, 10) || 0;
+
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+      setError('Price must be a non-negative number');
+      return;
+    }
+
+    if (parsedStock < 0) {
+      setError('Stock quantity must not be negative');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -66,8 +79,8 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
         description: description.trim() || null,
         sku: sku.trim() || null,
         category_id: categoryId || undefined,
-        price: parseFloat(price),
-        stock_quantity: parseInt(stockQuantity, 10) || 0,
+        price: parsedPrice,
+        stock_quantity: parsedStock,
         unit: unit.trim(),
         image_url: imageUrl || null,
       } as Partial<Product>);
@@ -181,6 +194,7 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
           <input
             type="number"
             step="0.01"
+            min="0"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2"
@@ -190,6 +204,7 @@ export function ProductForm({ product, categories, onSubmit, onCancel }: Product
           <label className="block text-sm font-medium text-gray-700 mb-1">Stock</label>
           <input
             type="number"
+            min="0"
             value={stockQuantity}
             onChange={(e) => setStockQuantity(e.target.value)}
             className="w-full border border-gray-300 rounded-lg px-3 py-2"

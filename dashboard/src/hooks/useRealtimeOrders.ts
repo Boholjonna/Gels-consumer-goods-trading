@@ -54,7 +54,7 @@ export function useRealtimeOrders(options?: UseRealtimeOrdersOptions) {
           setOrders((prev) =>
             prev.map((o) =>
               o.id === payload.new.id
-                ? { ...o, status: payload.new.status as Order['status'], updated_at: payload.new.updated_at as string }
+                ? { ...o, ...payload.new as Partial<Order> }
                 : o
             )
           );
