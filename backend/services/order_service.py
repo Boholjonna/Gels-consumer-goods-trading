@@ -1,4 +1,5 @@
 from database import supabase
+from schemas.order import OrderStatus, VALID_STATUS_TRANSITIONS
 
 
 def resolve_store_from_branch(branch_id: str | None) -> str | None:
@@ -87,13 +88,28 @@ def get_order(order_id: str) -> dict | None:
     return result.data[0] if result.data else None
 
 
-def update_order_status(order_id: str, status: str) -> dict:
-    result = (
+def update_order_status(order_id: str, new_status: OrderStatus) -> dict:
+    # Fetch current order to validate transition
+    current = (
         supabase.table("orders")
-        .update({"status": status})
+        .select("id, status")
         .eq("id", order_id)
         .execute()
     )
-    if not result.data:
+    if not current.data:
         raise ValueError("Order not found")
+
+    current_status = OrderStatus(current.data[0]["status"])
+    allowed = VALID_STATUS_TRANSITIONS.get(current_status, [])
+    if new_status not in allowed:
+        raise ValueError(
+            f"Cannot transition from '{current_status.value}' to '{new_status.value}'"
+        )
+
+    result = (
+        supabase.table("orders")
+        .update({"status": new_status.value})
+        .eq("id", order_id)
+        .execute()
+    )
     return result.data[0]

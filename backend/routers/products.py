@@ -23,6 +23,7 @@ async def list_products(
     page: int = 1,
     page_size: int = 50,
 ):
+    page_size = min(page_size, 200)
     return product_service.list_products(
         search=search,
         category_id=category_id,

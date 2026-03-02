@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ProductCreate(BaseModel):
@@ -11,6 +11,20 @@ class ProductCreate(BaseModel):
     unit: str = "unit"
     image_url: str | None = None
 
+    @field_validator("price")
+    @classmethod
+    def price_must_be_non_negative(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Price must not be negative")
+        return v
+
+    @field_validator("stock_quantity")
+    @classmethod
+    def stock_must_be_non_negative(cls, v: int) -> int:
+        if v < 0:
+            raise ValueError("Stock quantity must not be negative")
+        return v
+
 
 class ProductUpdate(BaseModel):
     name: str | None = None
@@ -22,6 +36,20 @@ class ProductUpdate(BaseModel):
     unit: str | None = None
     image_url: str | None = None
     is_active: bool | None = None
+
+    @field_validator("price")
+    @classmethod
+    def price_must_be_non_negative(cls, v: float | None) -> float | None:
+        if v is not None and v < 0:
+            raise ValueError("Price must not be negative")
+        return v
+
+    @field_validator("stock_quantity")
+    @classmethod
+    def stock_must_be_non_negative(cls, v: int | None) -> int | None:
+        if v is not None and v < 0:
+            raise ValueError("Stock quantity must not be negative")
+        return v
 
 
 class ProductResponse(BaseModel):
