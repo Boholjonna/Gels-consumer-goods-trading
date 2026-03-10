@@ -1,12 +1,24 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Upload, Pencil, Trash2, Package } from 'lucide-react';
+import { Plus, Search, Upload, Pencil, Trash2, Package, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { clsx } from 'clsx';
 import { formatCurrency } from '@/lib/formatters';
 import type { Product } from '@/types';
 import toast from 'react-hot-toast';
+
+interface PreviewRow {
+  _id: string;
+  name: string;
+  price: number;
+  stock_quantity: number;
+}
+
+type ImportState =
+  | null
+  | { phase: 'preview'; rows: PreviewRow[] }
+  | { phase: 'importing' };
 
 function StockBadge({ qty }: { qty: number }) {
   const cls =
@@ -22,39 +34,63 @@ function StockBadge({ qty }: { qty: number }) {
   );
 }
 
-function parseCSV(text: string): Partial<Product>[] {
+function parseCSV(text: string): PreviewRow[] {
   const lines = text.trim().split('\n');
   if (lines.length < 2) return [];
   const headers = lines[0].split(',').map((h) => h.trim().toLowerCase().replace(/[^a-z_]/g, '_'));
-  return lines.slice(1).map((line) => {
-    const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
-    const obj: Record<string, string | number | boolean | null> = {};
-    headers.forEach((h, i) => {
-      obj[h] = values[i] ?? '';
-    });
-    return {
-      name: obj.name as string,
-      sku: (obj.sku as string) || null,
-      description: (obj.description as string) || null,
-      price: parseFloat(obj.price as string) || 0,
-      stock_quantity: parseInt(obj.stock_quantity as string, 10) || 0,
-      unit: (obj.unit as string) || 'unit',
-      is_active: obj.is_active !== 'false',
-    };
-  });
+  return lines
+    .slice(1)
+    .map((line): PreviewRow | null => {
+      const values = line.split(',').map((v) => v.trim().replace(/^"|"$/g, ''));
+      const obj: Record<string, string> = {};
+      headers.forEach((h, i) => {
+        obj[h] = values[i] ?? '';
+      });
+      if (!obj.name) return null;
+      return {
+        _id: crypto.randomUUID(),
+        name: obj.name,
+        price: parseFloat(obj.price) || 0,
+        stock_quantity: parseInt(obj.stock_quantity, 10) || 0,
+      };
+    })
+    .filter((r): r is PreviewRow => r !== null);
 }
 
 export function ProductsPage() {
-  const { products, loading, error, deleteProduct, fetchProducts, createProduct } = useProducts();
+  const {
+    products,
+    total,
+    totalPages,
+    loading,
+    error,
+    deleteProduct,
+    fetchProducts,
+    batchCreateProducts,
+    clearAllProducts,
+  } = useProducts();
+
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-  const [importing, setImporting] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [importState, setImportState] = useState<ImportState>(null);
+  const [replaceExisting, setReplaceExisting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchProducts({ page, search: search || undefined });
+  }, [page, search, fetchProducts]);
 
   function handleSearch(value: string) {
     setSearch(value);
-    fetchProducts(value || undefined);
+    setPage(1);
+  }
+
+  function goToPage(newPage: number) {
+    if (newPage < 1 || newPage > totalPages) return;
+    setPage(newPage);
   }
 
   async function handleDelete() {
@@ -68,42 +104,85 @@ export function ProductsPage() {
     setDeleteTarget(null);
   }
 
-  async function handleCSVImport(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
+  async function handleClearAll() {
+    setShowClearConfirm(false);
     try {
-      const text = await file.text();
-      const rows = parseCSV(text);
-      if (rows.length === 0) {
-        toast.error('No valid rows found in CSV');
-        return;
-      }
-      let created = 0;
-      let failed = 0;
-      for (const row of rows) {
-        if (!row.name) { failed++; continue; }
-        try {
-          await createProduct(row);
-          created++;
-        } catch {
-          failed++;
-        }
-      }
-      toast.success(`Imported ${created} products${failed > 0 ? `, ${failed} failed` : ''}`);
-      await fetchProducts();
+      await clearAllProducts();
+      toast.success('All products cleared');
     } catch {
-      toast.error('Failed to parse CSV file');
-    } finally {
-      setImporting(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+      toast.error('Failed to clear products');
     }
   }
 
-  const filteredProducts = products.filter((p) => {
-    const matchSearch = !search || p.name.toLowerCase().includes(search.toLowerCase());
-    return matchSearch;
-  });
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    file
+      .text()
+      .then((text) => {
+        const rows = parseCSV(text);
+        if (rows.length === 0) {
+          toast.error('No valid rows found in CSV');
+          return;
+        }
+        setImportState({ phase: 'preview', rows });
+      })
+      .catch(() => {
+        toast.error('Failed to read CSV file');
+      });
+  }
+
+  async function handleImportConfirm() {
+    if (importState?.phase !== 'preview') return;
+    const rows = importState.rows;
+    setImportState({ phase: 'importing' });
+    try {
+      if (replaceExisting) {
+        await clearAllProducts();
+      }
+      const mappedRows: Partial<Product>[] = rows.map(({ name, price, stock_quantity }) => ({
+        name,
+        price,
+        stock_quantity,
+        is_active: true,
+      }));
+      await batchCreateProducts(mappedRows);
+      toast.success(`Imported ${rows.length} products`);
+      setImportState(null);
+      setReplaceExisting(false);
+      setPage(1);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to import products');
+      setImportState(null);
+    }
+  }
+
+  function updatePreviewRow(id: string, field: keyof Omit<PreviewRow, '_id'>, value: string) {
+    setImportState((prev) => {
+      if (prev?.phase !== 'preview') return prev;
+      return {
+        phase: 'preview',
+        rows: prev.rows.map((r) => {
+          if (r._id !== id) return r;
+          if (field === 'name') return { ...r, name: value };
+          if (field === 'price') return { ...r, price: parseFloat(value) || 0 };
+          if (field === 'stock_quantity') return { ...r, stock_quantity: parseInt(value, 10) || 0 };
+          return r;
+        }),
+      };
+    });
+  }
+
+  function removePreviewRow(id: string) {
+    setImportState((prev) => {
+      if (prev?.phase !== 'preview') return prev;
+      return { phase: 'preview', rows: prev.rows.filter((r) => r._id !== id) };
+    });
+  }
+
+  const previewRows = importState?.phase === 'preview' ? importState.rows : [];
+  const isImporting = importState?.phase === 'importing';
 
   return (
     <div className="p-4 bg-[#f0f4f8] min-h-full">
@@ -111,24 +190,33 @@ export function ProductsPage() {
       <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
         <p className="text-sm font-semibold text-[#0d1f35]">Products</p>
         <div className="flex items-center gap-2">
+          {(products.length > 0 || total > 0) && (
+            <button
+              onClick={() => setShowClearConfirm(true)}
+              className="bg-white border border-red-200 text-red-500 text-xs px-3 py-1.5 rounded-md hover:bg-red-50 flex items-center gap-1.5 transition-colors"
+            >
+              <Trash2 size={13} />
+              Clear All
+            </button>
+          )}
           <input
             type="file"
             accept=".csv"
             ref={fileInputRef}
-            onChange={handleCSVImport}
+            onChange={handleFileChange}
             className="hidden"
           />
           <button
             onClick={() => fileInputRef.current?.click()}
-            disabled={importing}
-            className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8] flex items-center gap-1.5"
+            disabled={isImporting}
+            className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8] flex items-center gap-1.5 transition-colors disabled:opacity-50"
           >
             <Upload size={13} />
-            {importing ? 'Importing...' : 'Import CSV'}
+            {isImporting ? 'Importing...' : 'Import CSV'}
           </button>
           <button
             onClick={() => navigate('/products/new')}
-            className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5"
+            className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5 transition-colors"
           >
             <Plus size={13} />
             Add Product
@@ -155,7 +243,12 @@ export function ProductsPage() {
         {error ? (
           <div className="p-8 text-center">
             <p className="text-xs text-red-500 mb-2">{error}</p>
-            <button onClick={() => fetchProducts()} className="text-xs text-[#1a56db] font-medium">Retry</button>
+            <button
+              onClick={() => fetchProducts({ page, search: search || undefined })}
+              className="text-xs text-[#1a56db] font-medium"
+            >
+              Retry
+            </button>
           </div>
         ) : loading ? (
           <div className="p-4 space-y-2">
@@ -167,7 +260,7 @@ export function ProductsPage() {
               </div>
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
           <div className="py-16 text-center">
             <Package size={24} className="text-[#8aa0b8] mx-auto mb-2" />
             <p className="text-xs text-[#8aa0b8]">No products found</p>
@@ -179,73 +272,237 @@ export function ProductsPage() {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">SKU</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Name</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden sm:table-cell">Category</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Price</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Stock</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden md:table-cell">Unit</th>
-                  <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Status</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] transition-colors">
-                    <td className="px-3 py-2 text-[10px] font-mono text-[#8aa0b8]">
-                      {product.sku || '—'}
-                    </td>
-                    <td className="px-3 py-2">
-                      <p className="text-xs text-[#0d1f35] font-medium">{product.name}</p>
-                    </td>
-                    <td className="px-3 py-2 text-xs text-[#4b5e73] hidden sm:table-cell">
-                      {product.categories?.name || '—'}
-                    </td>
-                    <td className="px-3 py-2 text-xs font-semibold text-[#0d1f35] text-right">
-                      {formatCurrency(product.price)}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <StockBadge qty={product.stock_quantity} />
-                    </td>
-                    <td className="px-3 py-2 text-xs text-[#4b5e73] text-center hidden md:table-cell">
-                      {product.unit}
-                    </td>
-                    <td className="px-3 py-2 text-center">
-                      <span className={clsx(
-                        'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                        product.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
-                      )}>
-                        {product.is_active ? 'active' : 'inactive'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          onClick={() => navigate(`/products/${product.id}/edit`)}
-                          className="text-[#8aa0b8] hover:text-[#1a56db] transition-colors"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => setDeleteTarget(product)}
-                          className="text-[#8aa0b8] hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      SKU
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      Name
+                    </th>
+                    <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden sm:table-cell">
+                      Category
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      Price
+                    </th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      Stock
+                    </th>
+                    <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      Status
+                    </th>
+                    <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {products.map((product) => (
+                    <tr
+                      key={product.id}
+                      className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] transition-colors"
+                    >
+                      <td className="px-3 py-2 text-[10px] font-mono text-[#8aa0b8]">
+                        {product.sku || '—'}
+                      </td>
+                      <td className="px-3 py-2">
+                        <p className="text-xs text-[#0d1f35] font-medium">{product.name}</p>
+                      </td>
+                      <td className="px-3 py-2 text-xs text-[#4b5e73] hidden sm:table-cell">
+                        {product.categories?.name || '—'}
+                      </td>
+                      <td className="px-3 py-2 text-xs font-semibold text-[#0d1f35] text-right">
+                        {formatCurrency(product.price)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <StockBadge qty={product.stock_quantity} />
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span
+                          className={clsx(
+                            'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                            product.is_active
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-gray-100 text-gray-500',
+                          )}
+                        >
+                          {product.is_active ? 'active' : 'inactive'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => navigate(`/products/${product.id}/edit`)}
+                            className="text-[#8aa0b8] hover:text-[#1a56db] transition-colors"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(product)}
+                            className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-3 py-2 border-t border-[#e2ecf9] text-xs text-[#8aa0b8]">
+              <span>{total} products</span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page === 1}
+                  className="px-2 py-1 rounded border border-[#dce8f5] hover:bg-[#f0f4f8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Prev
+                </button>
+                <span>
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= totalPages}
+                  className="px-2 py-1 rounded border border-[#dce8f5] hover:bg-[#f0f4f8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
+      {/* CSV Import Preview Modal */}
+      {importState !== null && (
+        <div className="fixed inset-0 bg-white/90 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-[#e2ecf9] rounded-xl shadow-xl w-full max-w-2xl">
+            {importState.phase === 'importing' ? (
+              <div className="p-10 text-center">
+                <p className="text-sm font-medium text-[#0d1f35]">Importing products...</p>
+                <p className="text-xs text-[#8aa0b8] mt-1">Please wait</p>
+              </div>
+            ) : (
+              <>
+                {/* Modal header */}
+                <div className="px-5 pt-5 pb-3 border-b border-[#e2ecf9]">
+                  <h2 className="text-sm font-bold text-[#0d1f35]">Import Preview</h2>
+                  <p className="text-xs text-[#8aa0b8] mt-0.5">
+                    {previewRows.length} products ready to import
+                  </p>
+                </div>
+
+                {/* Replace toggle */}
+                <div className="px-5 py-3 border-b border-[#e2ecf9]">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#4b5e73]">
+                    <input
+                      type="checkbox"
+                      checked={replaceExisting}
+                      onChange={(e) => setReplaceExisting(e.target.checked)}
+                      className="rounded border-[#dce8f5]"
+                    />
+                    Replace existing products
+                  </label>
+                </div>
+
+                {/* Scrollable preview table */}
+                <div className="max-h-72 overflow-y-auto">
+                  <table className="w-full">
+                    <thead className="sticky top-0">
+                      <tr className="bg-[#f8fafd] border-b border-[#e2ecf9]">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                          Name
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                          Price
+                        </th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                          Stock
+                        </th>
+                        <th className="px-3 py-2 w-8" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {previewRows.map((row) => (
+                        <tr key={row._id} className="border-b border-[#f0f4f8]">
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="text"
+                              value={row.name}
+                              onChange={(e) => updatePreviewRow(row._id, 'name', e.target.value)}
+                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                            />
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              value={row.price}
+                              onChange={(e) => updatePreviewRow(row._id, 'price', e.target.value)}
+                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-right focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              min="0"
+                              step="0.01"
+                            />
+                          </td>
+                          <td className="px-3 py-1.5">
+                            <input
+                              type="number"
+                              value={row.stock_quantity}
+                              onChange={(e) =>
+                                updatePreviewRow(row._id, 'stock_quantity', e.target.value)
+                              }
+                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-center focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              min="0"
+                            />
+                          </td>
+                          <td className="px-3 py-1.5 text-right">
+                            <button
+                              onClick={() => removePreviewRow(row._id)}
+                              className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                            >
+                              <X size={13} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Modal action bar */}
+                <div className="px-5 py-3 border-t border-[#e2ecf9] flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => {
+                      setImportState(null);
+                      setReplaceExisting(false);
+                    }}
+                    className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleImportConfirm}
+                    disabled={previewRows.length === 0}
+                    className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Import {previewRows.length} Products
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete single product confirm */}
       {deleteTarget && (
         <ConfirmDialog
           title="Delete Product"
@@ -253,6 +510,17 @@ export function ProductsPage() {
           confirmLabel="Delete"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {/* Clear all products confirm */}
+      {showClearConfirm && (
+        <ConfirmDialog
+          title="Clear All Products"
+          message="This will permanently delete all products. This cannot be undone."
+          confirmLabel="Clear All"
+          onConfirm={handleClearAll}
+          onCancel={() => setShowClearConfirm(false)}
         />
       )}
     </div>
