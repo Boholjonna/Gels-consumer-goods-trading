@@ -96,7 +96,7 @@ export function useProducts() {
     const { error: fkErr } = await supabase
       .from('order_items')
       .update({ product_id: null })
-      .not('product_id', 'is', null);
+      .gte('created_at', '2000-01-01');
     if (fkErr) throw fkErr;
     const { error: err } = await supabase
       .from('products')
