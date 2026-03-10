@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { supabase } from '@/lib/supabase';
 import { clsx } from 'clsx';
 import { formatCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import type { Order } from '@/types';
 
 const statusFilters = ['all', 'pending', 'confirmed', 'processing', 'completed', 'cancelled'] as const;
 
@@ -19,8 +23,24 @@ const statusBadge: Record<string, string> = {
 export function OrdersPage() {
   const navigate = useNavigate();
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
 
   const { orders, loading, error, refetch } = useRealtimeOrders();
+
+  async function handleDeleteOrder() {
+    if (!deleteTarget) return;
+    try {
+      await supabase.from('order_items').delete().eq('order_id', deleteTarget.id);
+      const { error: err } = await supabase.from('orders').delete().eq('id', deleteTarget.id);
+      if (err) throw err;
+      toast.success('Order removed');
+      refetch();
+    } catch {
+      toast.error('Failed to remove order');
+    } finally {
+      setDeleteTarget(null);
+    }
+  }
 
   const filteredOrders =
     statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
@@ -136,7 +156,15 @@ export function OrdersPage() {
                       {formatCurrency(order.total_amount)}
                     </td>
                     <td className="px-3 py-2 text-center">
-                      <ChevronRight size={14} className="text-[#8aa0b8] inline-block" />
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(order); }}
+                          className="p-1 text-[#8aa0b8] hover:text-red-500 transition-colors"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                        <ChevronRight size={14} className="text-[#8aa0b8]" />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -145,6 +173,16 @@ export function OrdersPage() {
           </div>
         )}
       </div>
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Remove Order"
+          message={`Remove order ${deleteTarget.order_number} from history? This cannot be undone.`}
+          confirmLabel="Remove"
+          onConfirm={handleDeleteOrder}
+          onCancel={() => setDeleteTarget(null)}
+        />
+      )}
     </div>
   );
 }
