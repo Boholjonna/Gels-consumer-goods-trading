@@ -14,21 +14,21 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/lib/cart';
-import { useAuth } from '@/lib/auth';
 import { formatCurrency, formatShortDate } from '@/lib/formatters';
 import type { Product } from '@/types';
 
 export default function ProductsScreen() {
-  const { user } = useAuth();
   const {
     products,
-    categories,
     loading,
     error,
     search,
     setSearch,
-    categoryFilter,
-    setCategoryFilter,
+    page,
+    totalPages,
+    total,
+    nextPage,
+    prevPage,
     refreshing,
     refresh,
   } = useProducts();
@@ -91,7 +91,7 @@ export default function ProductsScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-1 mr-3">
             <Text className="text-base font-bold text-gray-800" numberOfLines={1}>
-              {user?.branch_name || 'POS App'}
+              POS App
             </Text>
             <Text className="text-xs text-gray-400 mt-0.5">{today}</Text>
           </View>
@@ -141,34 +141,6 @@ export default function ProductsScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Category filter tabs */}
-        <FlatList
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          data={[{ id: null, name: 'All' }, ...categories]}
-          keyExtractor={(item) => item.id || 'all'}
-          className="mt-2"
-          renderItem={({ item }) => {
-            const isActive = categoryFilter === item.id || (item.id === null && !categoryFilter);
-            return (
-              <TouchableOpacity
-                className={`px-4 py-1.5 rounded-full mr-2 ${
-                  isActive ? 'bg-blue-500' : 'bg-gray-100'
-                }`}
-                onPress={() => setCategoryFilter(item.id as string | null)}
-              >
-                <Text
-                  className={`text-sm font-medium ${
-                    isActive ? 'text-white' : 'text-gray-600'
-                  }`}
-                >
-                  {item.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
-        />
       </View>
 
       {/* Product Feed */}
@@ -185,7 +157,7 @@ export default function ProductsScreen() {
           <Ionicons name="cube-outline" size={48} color="#d1d5db" />
           <Text className="text-gray-500 mt-3 text-center">No products found</Text>
           <Text className="text-gray-400 text-sm mt-1 text-center">
-            Try adjusting your search or filter
+            Try adjusting your search
           </Text>
         </View>
       ) : (
@@ -198,6 +170,32 @@ export default function ProductsScreen() {
           columnWrapperStyle={numColumns > 1 ? { gap: 10 } : undefined}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={refresh} />
+          }
+          ListFooterComponent={() =>
+            totalPages > 1 ? (
+              <View className="flex-row items-center justify-between bg-white mx-3 mb-4 px-4 py-3 rounded-xl border border-gray-100">
+                <TouchableOpacity
+                  onPress={prevPage}
+                  disabled={page === 1}
+                  className={page === 1 ? 'opacity-30' : 'opacity-100'}
+                >
+                  <Text className="text-sm font-medium text-blue-500">← Prev</Text>
+                </TouchableOpacity>
+                <View className="items-center">
+                  <Text className="text-sm font-medium text-gray-700">
+                    Page {page} of {totalPages}
+                  </Text>
+                  <Text className="text-xs text-gray-400">{total} products</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={nextPage}
+                  disabled={page >= totalPages}
+                  className={page >= totalPages ? 'opacity-30' : 'opacity-100'}
+                >
+                  <Text className="text-sm font-medium text-blue-500">Next →</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null
           }
           renderItem={({ item }) => {
             const isOutOfStock = item.stock_quantity <= 0;
