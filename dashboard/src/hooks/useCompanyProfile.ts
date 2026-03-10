@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPut } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 
 interface CompanyProfile {
   id: string;
@@ -20,10 +20,14 @@ export function useCompanyProfile() {
     setLoading(true);
     setError(null);
     try {
-      const data = await apiGet<CompanyProfile>('/company-profile');
-      setProfile(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load company profile');
+      const { data, error: err } = await supabase
+        .from('company_profile')
+        .select('*')
+        .maybeSingle();
+      if (err) throw err;
+      setProfile(data as CompanyProfile | null);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to load company profile');
     } finally {
       setLoading(false);
     }
@@ -34,10 +38,15 @@ export function useCompanyProfile() {
   }, [fetchProfile]);
 
   const updateProfile = useCallback(async (data: Partial<Omit<CompanyProfile, 'id' | 'updated_at'>>) => {
-    const updated = await apiPut<CompanyProfile>('/company-profile', data);
-    setProfile(updated);
-    return updated;
-  }, []);
+    const { data: updated, error: err } = await supabase
+      .from('company_profile')
+      .upsert({ ...profile, ...data, updated_at: new Date().toISOString() })
+      .select()
+      .single();
+    if (err) throw err;
+    setProfile(updated as CompanyProfile);
+    return updated as CompanyProfile;
+  }, [profile]);
 
   return { profile, loading, error, updateProfile, refetch: fetchProfile };
 }

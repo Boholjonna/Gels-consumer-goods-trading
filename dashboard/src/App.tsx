@@ -15,11 +15,12 @@ import { CategoriesPage } from '@/pages/CategoriesPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { BranchesPage } from '@/pages/BranchesPage';
 import { CompanyProfilePage } from '@/pages/CompanyProfilePage';
+import { ForecastPage } from '@/pages/ForecastPage';
 
 function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen bg-gray-50">
+      <div className="flex min-h-screen bg-[#f0f4f8]">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
@@ -46,6 +47,7 @@ export default function App() {
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/orders" element={<OrdersPage />} />
                     <Route path="/orders/:id" element={<OrderDetailPage />} />
+                    <Route path="/forecast" element={<ForecastPage />} />
                     <Route path="/products" element={<ProductsPage />} />
                     <Route path="/products/new" element={<ProductEditPage />} />
                     <Route path="/products/:id/edit" element={<ProductEditPage />} />

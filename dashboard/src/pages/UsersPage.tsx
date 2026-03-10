@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Plus, Wifi, WifiOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { apiGet, apiPost, apiPatch, apiDelete } from '@/lib/api';
+import { supabase } from '@/lib/supabase';
 import { UserDetailModal } from '@/components/UserDetailModal';
-import { SkeletonTable, EmptyState } from '@/components/Skeleton';
+import { clsx } from 'clsx';
 import type { Profile, ActivationCode, Branch } from '@/types';
 import toast from 'react-hot-toast';
-import { clsx } from 'clsx';
 
 type UserWithCode = Profile & { activation_code?: ActivationCode | null };
+
+const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] w-full';
+const labelCls = 'block text-xs font-medium text-[#4b5e73] mb-1';
 
 export function UsersPage() {
   const navigate = useNavigate();
@@ -30,8 +32,13 @@ export function UsersPage() {
 
   async function fetchUsers() {
     try {
-      const data = await apiGet<Profile[]>('/users');
-      setUsers(data.filter((u) => u.role === 'collector'));
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', 'collector')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      setUsers((data as Profile[]) || []);
     } catch {
       toast.error('Failed to load users');
     } finally {
@@ -41,18 +48,20 @@ export function UsersPage() {
 
   async function fetchBranches() {
     try {
-      const data = await apiGet<Branch[]>('/branches');
-      setBranches(data);
+      const { data } = await supabase
+        .from('branches')
+        .select('*')
+        .eq('is_active', true)
+        .order('name');
+      setBranches((data as Branch[]) || []);
     } catch {
-      // Non-critical, branches may not exist yet
+      // Non-critical
     }
   }
 
   useEffect(() => {
     fetchUsers();
     fetchBranches();
-
-    // Poll for status updates every 15 seconds
     const interval = setInterval(() => {
       fetchUsers();
     }, 15000);
@@ -73,11 +82,10 @@ export function UsersPage() {
     setFormError('');
 
     try {
-      await apiPost('/users', {
-        nickname: nickname.trim(),
-        branch_id: branchId,
-        tag: tag.trim() || undefined,
+      const { error } = await supabase.functions.invoke('create-collector', {
+        body: { nickname: nickname.trim(), branch_id: branchId, tag: tag.trim() || undefined },
       });
+      if (error) throw error;
       toast.success('Collector created');
       setShowCreateModal(false);
       resetForm();
@@ -92,7 +100,11 @@ export function UsersPage() {
   async function handleDeactivate() {
     if (!deactivateTarget) return;
     try {
-      await apiPatch(`/users/${deactivateTarget.id}/activate?is_active=false`, {});
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: false })
+        .eq('id', deactivateTarget.id);
+      if (error) throw error;
       toast.success('User deactivated');
       await fetchUsers();
     } catch {
@@ -103,7 +115,11 @@ export function UsersPage() {
 
   async function handleActivate(user: Profile) {
     try {
-      await apiPatch(`/users/${user.id}/activate?is_active=true`, {});
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_active: true })
+        .eq('id', user.id);
+      if (error) throw error;
       toast.success('User activated');
       await fetchUsers();
     } catch {
@@ -115,11 +131,14 @@ export function UsersPage() {
     if (!deleteTarget) return;
     const expectedName = deleteTarget.nickname || deleteTarget.full_name;
     if (deleteConfirmName !== expectedName) {
-      toast.error('Name does not match. Please type the exact collector name.');
+      toast.error('Name does not match');
       return;
     }
     try {
-      await apiDelete(`/users/${deleteTarget.id}`);
+      const { error } = await supabase.functions.invoke('delete-collector', {
+        body: { user_id: deleteTarget.id },
+      });
+      if (error) throw error;
       toast.success('Collector deleted');
       await fetchUsers();
     } catch {
@@ -132,8 +151,15 @@ export function UsersPage() {
   async function handleRowClick(user: Profile) {
     if (user.role !== 'collector') return;
     try {
-      const detail = await apiGet<UserWithCode>(`/users/${user.id}`);
-      setSelectedUser(detail);
+      const { data: codeData } = await supabase
+        .from('activation_codes')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('is_used', false)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setSelectedUser({ ...user, activation_code: codeData as ActivationCode | null });
     } catch {
       toast.error('Failed to load user details');
     }
@@ -157,147 +183,166 @@ export function UsersPage() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold text-gray-800">Collectors</h1>
+    <div className="p-4 bg-[#f0f4f8] min-h-full">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-[#0d1f35]">Collectors</p>
         <button
           onClick={() => { resetForm(); setShowCreateModal(true); }}
-          className="flex items-center gap-2 bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-600"
+          className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5"
         >
-          <Plus size={16} />
+          <Plus size={13} />
           Add Collector
         </button>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
         {loading ? (
-          <SkeletonTable rows={5} cols={6} />
+          <div className="p-4 space-y-2">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex gap-3 animate-pulse py-1">
+                <div className="h-3 bg-gray-200 rounded w-20" />
+                <div className="h-3 bg-gray-200 rounded flex-1" />
+                <div className="h-3 bg-gray-200 rounded w-16" />
+              </div>
+            ))}
+          </div>
         ) : users.length === 0 ? (
-          <EmptyState
-            icon="users"
-            title="No collectors found"
-            description="Add collectors to manage your team."
-          />
+          <div className="py-16 text-center">
+            <p className="text-xs text-[#8aa0b8]">No collectors found</p>
+            <button
+              onClick={() => { resetForm(); setShowCreateModal(true); }}
+              className="mt-2 text-xs text-[#1a56db] hover:text-[#1447c0] font-medium"
+            >
+              Add your first collector
+            </button>
+          </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50 text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Nickname</th>
-                <th className="px-4 py-3 font-medium">Branch</th>
-                <th className="px-4 py-3 font-medium">Connected</th>
-                <th className="px-4 py-3 font-medium">Status</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((user) => (
-                <tr
-                  key={user.id}
-                  className="border-b hover:bg-gray-50 cursor-pointer"
-                  onClick={() => handleRowClick(user)}
-                >
-                  <td className="px-4 py-3 font-mono text-xs text-gray-500">
-                    {user.display_id || user.id.slice(0, 8)}
-                  </td>
-                  <td className="px-4 py-3 font-medium text-gray-800">
-                    {user.nickname || user.full_name}
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {getBranchName(user.branch_id) || (
-                      <span className="text-gray-400">Unassigned</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1.5">
-                      {user.device_connected_at ? (
-                        <>
-                          {isOnline(user) ? (
-                            <Wifi size={14} className="text-green-500" />
-                          ) : (
-                            <WifiOff size={14} className="text-gray-400" />
-                          )}
-                          <span className={clsx(
-                            'text-xs',
-                            isOnline(user) ? 'text-green-600' : 'text-gray-400'
-                          )}>
-                            {isOnline(user) ? 'Online' : 'Offline'}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-gray-400">Not connected</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={clsx(
-                      'px-2 py-0.5 rounded-full text-xs font-medium',
-                      user.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                    )}>
-                      {user.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                      {user.is_active ? (
-                        <button
-                          onClick={() => setDeactivateTarget(user)}
-                          className="text-sm text-gray-500 hover:text-gray-700"
-                        >
-                          Deactivate
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleActivate(user)}
-                            className="text-sm text-blue-500 hover:text-blue-700"
-                          >
-                            Activate
-                          </button>
-                          <button
-                            onClick={() => { setDeleteTarget(user); setDeleteConfirmName(''); }}
-                            className="text-sm text-red-500 hover:text-red-700"
-                          >
-                            Delete
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Nickname</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden sm:table-cell">Branch</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden md:table-cell">Connected</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Status</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr
+                    key={user.id}
+                    className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] cursor-pointer transition-colors"
+                    onClick={() => handleRowClick(user)}
+                  >
+                    <td className="px-3 py-2 font-mono text-[10px] text-[#8aa0b8]">
+                      {user.display_id || user.id.slice(0, 8)}
+                    </td>
+                    <td className="px-3 py-2 text-xs font-medium text-[#0d1f35]">
+                      {user.nickname || user.full_name}
+                      {user.tag && (
+                        <span className="ml-1.5 px-1 py-0.5 bg-[#f0f4f8] text-[#8aa0b8] text-[9px] rounded">
+                          {user.tag}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 text-xs text-[#4b5e73] hidden sm:table-cell">
+                      {getBranchName(user.branch_id) || (
+                        <span className="text-[#8aa0b8]">Unassigned</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2 hidden md:table-cell">
+                      <div className="flex items-center gap-1.5">
+                        {user.device_connected_at ? (
+                          <>
+                            {isOnline(user) ? (
+                              <Wifi size={12} className="text-green-500" />
+                            ) : (
+                              <WifiOff size={12} className="text-[#8aa0b8]" />
+                            )}
+                            <span className={clsx(
+                              'text-[10px]',
+                              isOnline(user) ? 'text-green-600' : 'text-[#8aa0b8]'
+                            )}>
+                              {isOnline(user) ? 'Online' : 'Offline'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[10px] text-[#8aa0b8]">Not connected</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-2">
+                      <span className={clsx(
+                        'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                        user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                      )}>
+                        {user.is_active ? 'active' : 'inactive'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        {user.is_active ? (
+                          <button
+                            onClick={() => setDeactivateTarget(user)}
+                            className="text-[10px] text-[#4b5e73] hover:text-[#0d1f35] font-medium"
+                          >
+                            Deactivate
+                          </button>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleActivate(user)}
+                              className="text-[10px] text-[#1a56db] hover:text-[#1447c0] font-medium"
+                            >
+                              Activate
+                            </button>
+                            <button
+                              onClick={() => { setDeleteTarget(user); setDeleteConfirmName(''); }}
+                              className="text-[10px] text-red-500 hover:text-red-700 font-medium"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Create Collector Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">New Collector</h3>
+          <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-[#0d1f35] mb-4">New Collector</h3>
             {formError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-red-600 text-sm">
+              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-3 text-red-600 text-xs">
                 {formError}
               </div>
             )}
             <div className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nickname</label>
+                <label className={labelCls}>Nickname *</label>
                 <input
                   type="text"
                   value={nickname}
                   onChange={(e) => setNickname(e.target.value)}
                   placeholder="Enter nickname"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  className={inputCls}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Branch</label>
+                <label className={labelCls}>Branch *</label>
                 <select
                   value={branchId}
                   onChange={(e) => setBranchId(e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                  className={`${inputCls} bg-white`}
                 >
                   <option value="">Select branch...</option>
                   {branches.map((b) => (
@@ -308,34 +353,34 @@ export function UsersPage() {
                   <button
                     type="button"
                     onClick={() => { setShowCreateModal(false); navigate('/branches'); }}
-                    className="text-xs text-blue-500 hover:text-blue-700 mt-1"
+                    className="text-xs text-[#1a56db] hover:text-[#1447c0] mt-1"
                   >
-                    No branches yet - create one first
+                    No branches yet — create one first
                   </button>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tag (optional)</label>
+                <label className={labelCls}>Tag (optional)</label>
                 <input
                   type="text"
                   value={tag}
                   onChange={(e) => setTag(e.target.value)}
-                  placeholder="Enter tag"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  placeholder="e.g. zone-a"
+                  className={inputCls}
                 />
               </div>
             </div>
-            <div className="flex gap-3 justify-end mt-6">
+            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-[#e2ecf9]">
               <button
                 onClick={() => { setShowCreateModal(false); resetForm(); }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateUser}
                 disabled={formLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 disabled:bg-blue-300"
+                className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] disabled:opacity-60"
               >
                 {formLoading ? 'Creating...' : 'Create Collector'}
               </button>
@@ -347,22 +392,22 @@ export function UsersPage() {
       {/* Deactivate confirmation */}
       {deactivateTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Deactivate User</h3>
-            <p className="text-sm text-gray-500 mb-6">
+          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-[#0d1f35] mb-2">Deactivate User</h3>
+            <p className="text-xs text-[#4b5e73] mb-4">
               Are you sure you want to deactivate "{deactivateTarget.nickname || deactivateTarget.full_name}"?
-              They will be logged out of the mobile app and unable to sign in.
+              They will be unable to sign in to the mobile app.
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeactivateTarget(null)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeactivate}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600"
+                className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-600"
               >
                 Deactivate
               </button>
@@ -374,30 +419,30 @@ export function UsersPage() {
       {/* Delete confirmation with name entry */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Collector</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              This action is permanent and cannot be undone. To confirm, type the
-              collector's name: <strong>{deleteTarget.nickname || deleteTarget.full_name}</strong>
+          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-[#0d1f35] mb-2">Delete Collector</h3>
+            <p className="text-xs text-[#4b5e73] mb-3">
+              This action is permanent. To confirm, type the collector's name:{' '}
+              <strong>{deleteTarget.nickname || deleteTarget.full_name}</strong>
             </p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={(e) => setDeleteConfirmName(e.target.value)}
               placeholder="Type collector name to confirm"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
+              className={`${inputCls} mb-3`}
             />
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteConfirmName(''); }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== (deleteTarget.nickname || deleteTarget.full_name)}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed"
+                className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Delete Permanently
               </button>

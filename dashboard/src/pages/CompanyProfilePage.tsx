@@ -20,6 +20,8 @@ const fields: FieldDef[] = [
 
 type FieldKey = FieldDef['key'];
 
+const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] flex-1';
+
 export function CompanyProfilePage() {
   const { profile, loading, error, updateProfile } = useCompanyProfile();
   const [editingField, setEditingField] = useState<FieldKey | null>(null);
@@ -28,7 +30,7 @@ export function CompanyProfilePage() {
 
   function startEdit(key: FieldKey) {
     setEditingField(key);
-    setEditValue((profile as any)?.[key] || '');
+    setEditValue((profile as Record<string, unknown>)?.[key] as string || '');
   }
 
   function cancelEdit() {
@@ -43,8 +45,8 @@ export function CompanyProfilePage() {
       toast.success('Updated successfully');
       setEditingField(null);
       setEditValue('');
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to update');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update');
     } finally {
       setSaving(false);
     }
@@ -52,45 +54,51 @@ export function CompanyProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="animate-spin text-gray-400" size={32} />
+      <div className="p-4 bg-[#f0f4f8] min-h-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#1a56db]" size={24} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6">
-        <p className="text-red-500">{error}</p>
+      <div className="p-4 bg-[#f0f4f8] min-h-full">
+        <div className="bg-white border border-[#e2ecf9] rounded-lg p-6 text-center">
+          <p className="text-xs text-red-500">{error}</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
-        <Building2 className="text-blue-500" size={28} />
-        <h1 className="text-2xl font-bold text-gray-800">Company Profile</h1>
+    <div className="p-4 bg-[#f0f4f8] min-h-full">
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="w-7 h-7 rounded-lg bg-[#dce8f5] flex items-center justify-center">
+          <Building2 size={14} className="text-[#1a56db]" />
+        </div>
+        <p className="text-sm font-semibold text-[#0d1f35]">Company Profile</p>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden max-w-2xl">
         {fields.map((field, idx) => {
           const isEditing = editingField === field.key;
-          const value = (profile as any)?.[field.key];
+          const value = (profile as Record<string, unknown>)?.[field.key] as string | null;
 
           return (
             <div
               key={field.key}
-              className={`px-6 py-4 ${idx < fields.length - 1 ? 'border-b border-gray-100' : ''}`}
+              className={`px-4 py-3 ${idx < fields.length - 1 ? 'border-b border-[#f0f4f8]' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-500 mb-1">{field.label}</p>
+                  <p className="text-[10px] font-semibold text-[#8aa0b8] uppercase tracking-wide mb-1.5">
+                    {field.label}
+                  </p>
                   {isEditing ? (
                     <div className="flex items-start gap-2">
                       {field.multiline ? (
                         <textarea
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          className={`${inputCls} resize-none`}
                           rows={3}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
@@ -99,29 +107,33 @@ export function CompanyProfilePage() {
                         />
                       ) : (
                         <input
-                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          className={inputCls}
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
                           placeholder={field.placeholder}
                           autoFocus
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveField(field.key);
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
                         />
                       )}
                       <button
                         onClick={() => saveField(field.key)}
                         disabled={saving}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
+                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
                       >
-                        {saving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+                        {saving ? <Loader2 className="animate-spin" size={13} /> : <Check size={13} />}
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="p-2 text-gray-400 hover:bg-gray-50 rounded-lg"
+                        className="p-1.5 text-[#8aa0b8] hover:bg-[#f0f4f8] rounded-md transition-colors"
                       >
-                        <X size={16} />
+                        <X size={13} />
                       </button>
                     </div>
                   ) : (
-                    <p className={`text-sm ${value ? 'text-gray-800' : 'text-gray-400 italic'}`}>
+                    <p className={`text-xs ${value ? 'text-[#0d1f35]' : 'text-[#8aa0b8] italic'}`}>
                       {value || 'Not set'}
                     </p>
                   )}
@@ -129,9 +141,9 @@ export function CompanyProfilePage() {
                 {!isEditing && (
                   <button
                     onClick={() => startEdit(field.key)}
-                    className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg mt-4"
+                    className="p-1.5 text-[#8aa0b8] hover:text-[#1a56db] hover:bg-[#f0f4f8] rounded-md transition-colors mt-4"
                   >
-                    <Pencil size={16} />
+                    <Pencil size={13} />
                   </button>
                 )}
               </div>
@@ -141,7 +153,7 @@ export function CompanyProfilePage() {
       </div>
 
       {profile?.updated_at && (
-        <p className="text-xs text-gray-400 mt-4 text-right">
+        <p className="text-[10px] text-[#8aa0b8] mt-3 max-w-2xl text-right">
           Last updated: {new Date(profile.updated_at).toLocaleString()}
         </p>
       )}

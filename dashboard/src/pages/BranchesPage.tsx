@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus, MapPin, Users, Clock, ChevronDown, ChevronUp, Wifi, WifiOff } from 'lucide-react';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
-import { SkeletonTable, EmptyState } from '@/components/Skeleton';
+import { Plus, MapPin, Users, ChevronDown, ChevronUp, Wifi, WifiOff, Pencil, Trash2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { clsx } from 'clsx';
 import type { Branch, Profile } from '@/types';
 import toast from 'react-hot-toast';
 import { formatDistanceToNow } from 'date-fns';
-import { clsx } from 'clsx';
+
+const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] w-full';
+const labelCls = 'block text-xs font-medium text-[#4b5e73] mb-1';
 
 export function BranchesPage() {
   const [branches, setBranches] = useState<Branch[]>([]);
@@ -26,8 +28,12 @@ export function BranchesPage() {
 
   async function fetchBranches() {
     try {
-      const data = await apiGet<Branch[]>('/branches');
-      setBranches(data);
+      const { data, error } = await supabase
+        .from('branches')
+        .select('*')
+        .order('name');
+      if (error) throw error;
+      setBranches((data as Branch[]) || []);
     } catch {
       toast.error('Failed to load branches');
     } finally {
@@ -57,16 +63,17 @@ export function BranchesPage() {
 
     try {
       if (editingId) {
-        await apiPut(`/branches/${editingId}`, {
-          name: name.trim(),
-          location: location.trim() || null,
-        });
+        const { error } = await supabase
+          .from('branches')
+          .update({ name: name.trim(), location: location.trim() || null })
+          .eq('id', editingId);
+        if (error) throw error;
         toast.success('Branch updated');
       } else {
-        await apiPost('/branches', {
-          name: name.trim(),
-          location: location.trim() || null,
-        });
+        const { error } = await supabase
+          .from('branches')
+          .insert({ name: name.trim(), location: location.trim() || null });
+        if (error) throw error;
         toast.success('Branch created');
       }
       setShowForm(false);
@@ -89,11 +96,12 @@ export function BranchesPage() {
   async function handleDelete() {
     if (!deleteTarget) return;
     if (deleteConfirmName !== deleteTarget.name) {
-      toast.error('Name does not match. Please type the exact branch name.');
+      toast.error('Name does not match');
       return;
     }
     try {
-      await apiDelete(`/branches/${deleteTarget.id}`);
+      const { error } = await supabase.from('branches').delete().eq('id', deleteTarget.id);
+      if (error) throw error;
       toast.success('Branch deleted');
       await fetchBranches();
     } catch (err: unknown) {
@@ -114,8 +122,18 @@ export function BranchesPage() {
     if (!branchCollectors[branchId]) {
       setLoadingCollectors(branchId);
       try {
-        const collectors = await apiGet<Profile[]>(`/branches/${branchId}/collectors`);
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('branch_id', branchId)
+          .order('created_at');
+        if (error) throw error;
+        const collectors = (data as Profile[]) || [];
         setBranchCollectors((prev) => ({ ...prev, [branchId]: collectors }));
+        // update collector_count in local branches state
+        setBranches((prev) =>
+          prev.map((b) => b.id === branchId ? { ...b, collector_count: collectors.length } : b)
+        );
       } catch {
         toast.error('Failed to load collectors');
       } finally {
@@ -130,53 +148,62 @@ export function BranchesPage() {
   }
 
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold text-gray-800">Branches</h1>
+    <div className="p-4 bg-[#f0f4f8] min-h-full">
+      <div className="flex items-center justify-between mb-3">
+        <p className="text-sm font-semibold text-[#0d1f35]">Branches</p>
         <button
           onClick={() => { resetForm(); setShowForm(true); }}
-          className="flex items-center gap-2 bg-blue-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-blue-600"
+          className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5"
         >
-          <Plus size={16} />
+          <Plus size={13} />
           Add Branch
         </button>
       </div>
 
+      {/* Inline form */}
       {showForm && (
-        <div className="bg-white rounded-lg border border-gray-200 p-4 mb-4">
-          <h3 className="font-semibold mb-3">{editingId ? 'Edit Branch' : 'New Branch'}</h3>
+        <div className="bg-white border border-[#e2ecf9] rounded-lg p-4 mb-3">
+          <p className="text-xs font-semibold text-[#0d1f35] mb-3">
+            {editingId ? 'Edit Branch' : 'New Branch'}
+          </p>
           {formError && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-3 text-red-600 text-sm">
+            <div className="bg-red-50 border border-red-200 rounded-md p-2 mb-3 text-red-600 text-xs">
               {formError}
             </div>
           )}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Branch name"
-              className="border border-gray-300 rounded-lg px-3 py-2"
-            />
-            <input
-              type="text"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="Location (optional)"
-              className="border border-gray-300 rounded-lg px-3 py-2"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+            <div>
+              <label className={labelCls}>Branch Name *</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Branch name"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Location</label>
+              <input
+                type="text"
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+                placeholder="Location (optional)"
+                className={inputCls}
+              />
+            </div>
           </div>
-          <div className="flex gap-2 mt-3">
+          <div className="flex gap-2">
             <button
               onClick={handleSubmit}
               disabled={formLoading}
-              className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-600 disabled:bg-blue-300"
+              className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] disabled:opacity-60"
             >
               {formLoading ? 'Saving...' : editingId ? 'Update Branch' : 'Create Branch'}
             </button>
             <button
               onClick={() => { setShowForm(false); resetForm(); }}
-              className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200"
+              className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
             >
               Cancel
             </button>
@@ -184,25 +211,35 @@ export function BranchesPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-lg border border-gray-200">
+      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
         {loading ? (
-          <SkeletonTable rows={5} cols={5} />
+          <div className="p-4 space-y-2">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-3 animate-pulse py-1">
+                <div className="h-3 bg-gray-200 rounded flex-1" />
+                <div className="h-3 bg-gray-200 rounded w-20" />
+              </div>
+            ))}
+          </div>
         ) : branches.length === 0 ? (
-          <EmptyState
-            icon="building"
-            title="No branches yet"
-            description="Create a branch to organize your collectors."
-          />
+          <div className="py-16 text-center">
+            <p className="text-xs text-[#8aa0b8]">No branches yet</p>
+            <button
+              onClick={() => { resetForm(); setShowForm(true); }}
+              className="mt-2 text-xs text-[#1a56db] hover:text-[#1447c0] font-medium"
+            >
+              Create your first branch
+            </button>
+          </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full">
             <thead>
-              <tr className="border-b bg-gray-50 text-left text-gray-500">
-                <th className="px-4 py-3 font-medium">ID</th>
-                <th className="px-4 py-3 font-medium">Name</th>
-                <th className="px-4 py-3 font-medium">Location</th>
-                <th className="px-4 py-3 font-medium">Collectors</th>
-                <th className="px-4 py-3 font-medium">Last Order</th>
-                <th className="px-4 py-3 font-medium text-right">Actions</th>
+              <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">ID</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Name</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden sm:table-cell">Location</th>
+                <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Collectors</th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -210,107 +247,118 @@ export function BranchesPage() {
                 <>
                   <tr
                     key={branch.id}
-                    className="border-b hover:bg-gray-50 cursor-pointer"
+                    className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] cursor-pointer transition-colors"
                     onClick={() => toggleBranchExpand(branch.id)}
                   >
-                    <td className="px-4 py-3 font-mono text-xs text-gray-500">
+                    <td className="px-3 py-2 font-mono text-[10px] text-[#8aa0b8]">
                       {branch.display_id || branch.id.slice(0, 8)}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-800">
+                    <td className="px-3 py-2 text-xs font-medium text-[#0d1f35]">
                       <div className="flex items-center gap-1.5">
                         {expandedBranch === branch.id ? (
-                          <ChevronUp size={14} className="text-gray-400" />
+                          <ChevronUp size={13} className="text-[#8aa0b8]" />
                         ) : (
-                          <ChevronDown size={14} className="text-gray-400" />
+                          <ChevronDown size={13} className="text-[#8aa0b8]" />
                         )}
-                        <span>{branch.name}</span>
+                        {branch.name}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-3 py-2 text-xs text-[#4b5e73] hidden sm:table-cell">
                       <div className="flex items-center gap-1.5">
                         {branch.location ? (
                           <>
-                            <MapPin size={14} className="text-gray-400" />
-                            <span>{branch.location}</span>
+                            <MapPin size={12} className="text-[#8aa0b8]" />
+                            {branch.location}
                           </>
                         ) : (
-                          <span className="text-gray-400">Not set</span>
+                          <span className="text-[#8aa0b8]">Not set</span>
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        <Users size={14} className="text-gray-400" />
-                        <span>{branch.collector_count ?? 0}</span>
+                    <td className="px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-xs text-[#4b5e73]">
+                        <Users size={12} className="text-[#8aa0b8]" />
+                        {branch.collector_count ?? '—'}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={14} className="text-gray-400" />
-                        <span>
-                          {branch.last_order_at
-                            ? formatDistanceToNow(new Date(branch.last_order_at), { addSuffix: true })
-                            : 'No orders'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-3 py-2 text-right">
                       <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
                         <button
                           onClick={() => handleEdit(branch)}
-                          className="text-sm text-blue-500 hover:text-blue-700"
+                          className="text-[#8aa0b8] hover:text-[#1a56db] transition-colors"
                         >
-                          Edit
+                          <Pencil size={13} />
                         </button>
                         <button
                           onClick={() => {
                             if ((branch.collector_count ?? 0) > 0) {
-                              toast.error(`Cannot delete "${branch.name}" — it has ${branch.collector_count} collector(s). Remove them first.`);
+                              toast.error(`Cannot delete "${branch.name}" — it has collectors. Remove them first.`);
                               return;
                             }
                             setDeleteTarget(branch);
                             setDeleteConfirmName('');
                           }}
-                          className="text-sm text-red-500 hover:text-red-700"
+                          className="text-[#8aa0b8] hover:text-red-500 transition-colors"
                         >
-                          Delete
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
                   </tr>
                   {expandedBranch === branch.id && (
-                    <tr key={`${branch.id}-collectors`} className="border-b">
-                      <td colSpan={6} className="px-4 py-3 bg-gray-50">
+                    <tr key={`${branch.id}-expanded`} className="border-b border-[#f0f4f8]">
+                      <td colSpan={5} className="px-4 py-3 bg-[#f8fafd]">
                         {loadingCollectors === branch.id ? (
-                          <p className="text-sm text-gray-500 py-2">Loading collectors...</p>
+                          <p className="text-xs text-[#8aa0b8] py-2">Loading collectors...</p>
                         ) : (branchCollectors[branch.id] || []).length === 0 ? (
-                          <p className="text-sm text-gray-400 py-2">No collectors in this branch</p>
+                          <p className="text-xs text-[#8aa0b8] py-2">No collectors in this branch</p>
                         ) : (
-                          <div className="space-y-2">
+                          <div className="space-y-1.5">
                             {(branchCollectors[branch.id] || []).map((c) => (
-                              <div key={c.id} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100">
+                              <div
+                                key={c.id}
+                                className="flex items-center justify-between bg-white rounded-md px-3 py-2 border border-[#e2ecf9]"
+                              >
                                 <div className="flex items-center gap-3">
-                                  <span className="font-mono text-xs text-gray-400">{c.display_id || c.id.slice(0, 8)}</span>
-                                  <span className="text-sm font-medium text-gray-800">{c.nickname || c.full_name}</span>
-                                  {c.tag && <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{c.tag}</span>}
+                                  <span className="font-mono text-[10px] text-[#8aa0b8]">
+                                    {c.display_id || c.id.slice(0, 8)}
+                                  </span>
+                                  <span className="text-xs font-medium text-[#0d1f35]">
+                                    {c.nickname || c.full_name}
+                                  </span>
+                                  {c.tag && (
+                                    <span className="text-[9px] text-[#8aa0b8] bg-[#f0f4f8] px-1 py-0.5 rounded">
+                                      {c.tag}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="flex items-center gap-3">
                                   <div className="flex items-center gap-1">
                                     {c.device_connected_at ? (
                                       isOnline(c) ? (
-                                        <><Wifi size={12} className="text-green-500" /><span className="text-xs text-green-600">Online</span></>
+                                        <>
+                                          <Wifi size={11} className="text-green-500" />
+                                          <span className="text-[10px] text-green-600">Online</span>
+                                        </>
                                       ) : (
-                                        <><WifiOff size={12} className="text-gray-400" /><span className="text-xs text-gray-400">Offline</span></>
+                                        <>
+                                          <WifiOff size={11} className="text-[#8aa0b8]" />
+                                          <span className="text-[10px] text-[#8aa0b8]">
+                                            {c.last_seen_at
+                                              ? formatDistanceToNow(new Date(c.last_seen_at), { addSuffix: true })
+                                              : 'Offline'}
+                                          </span>
+                                        </>
                                       )
                                     ) : (
-                                      <span className="text-xs text-gray-400">Not connected</span>
+                                      <span className="text-[10px] text-[#8aa0b8]">Not connected</span>
                                     )}
                                   </div>
                                   <span className={clsx(
-                                    'px-2 py-0.5 rounded-full text-xs font-medium',
-                                    c.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                    'px-1.5 py-0.5 rounded text-[9px] font-medium',
+                                    c.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
                                   )}>
-                                    {c.is_active ? 'Active' : 'Inactive'}
+                                    {c.is_active ? 'active' : 'inactive'}
                                   </span>
                                 </div>
                               </div>
@@ -327,32 +375,33 @@ export function BranchesPage() {
         )}
       </div>
 
-      {/* Delete confirmation with name entry */}
+      {/* Delete confirmation */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6">
-            <h3 className="text-lg font-bold text-gray-800 mb-2">Delete Branch</h3>
-            <p className="text-sm text-gray-500 mb-4">
-              This action is permanent. To confirm, type the branch name: <strong>{deleteTarget.name}</strong>
+          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
+            <h3 className="text-sm font-bold text-[#0d1f35] mb-2">Delete Branch</h3>
+            <p className="text-xs text-[#4b5e73] mb-3">
+              This action is permanent. To confirm, type the branch name:{' '}
+              <strong>{deleteTarget.name}</strong>
             </p>
             <input
               type="text"
               value={deleteConfirmName}
               onChange={(e) => setDeleteConfirmName(e.target.value)}
               placeholder="Type branch name to confirm"
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 mb-4"
+              className={`${inputCls} mb-3`}
             />
-            <div className="flex gap-3 justify-end">
+            <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteConfirmName(''); }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== deleteTarget.name}
-                className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:bg-red-300 disabled:cursor-not-allowed"
+                className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Delete Permanently
               </button>

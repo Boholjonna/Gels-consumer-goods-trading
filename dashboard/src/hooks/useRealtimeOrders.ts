@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-import { apiGet } from '@/lib/api';
-import type { Order, PaginatedResponse } from '@/types';
+import type { Order } from '@/types';
 
 interface UseRealtimeOrdersOptions {
   onNewOrder?: (orderId: string) => void;
@@ -18,8 +17,14 @@ export function useRealtimeOrders(options?: UseRealtimeOrdersOptions) {
     setLoading(true);
     setError(null);
     try {
-      const result = await apiGet<PaginatedResponse<Order>>('/orders?page_size=100');
-      setOrders(result.data);
+      const { data, error: err } = await supabase
+        .from('orders')
+        .select('*, profiles:collector_id(full_name, email, nickname), stores:store_id(name), order_items(*)')
+        .order('created_at', { ascending: false })
+        .limit(300);
+
+      if (err) throw err;
+      setOrders((data as Order[]) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load orders');
     } finally {

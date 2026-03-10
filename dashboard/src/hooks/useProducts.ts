@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { apiGet, apiPost, apiPut, apiDelete } from '@/lib/api';
-import type { Product, Category, PaginatedResponse } from '@/types';
+import { supabase } from '@/lib/supabase';
+import type { Product, Category } from '@/types';
 
 export function useProducts() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -9,19 +9,20 @@ export function useProducts() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProducts = useCallback(async (search?: string, categoryId?: string) => {
+  const fetchProducts = useCallback(async (search?: string, categoryId?: string, isActive?: boolean) => {
     setLoading(true);
     setError(null);
     try {
-      const params = new URLSearchParams();
-      if (search) params.set('search', search);
-      if (categoryId) params.set('category_id', categoryId);
-      params.set('is_active', 'true');
-      params.set('page_size', '200');
-      const query = params.toString();
-      const result = await apiGet<PaginatedResponse<Product>>(`/products?${query}`);
-      setProducts(result.data);
-      setTotal(result.total);
+      let query = supabase.from('products').select('*, categories(name)', { count: 'exact' });
+      if (search) query = query.ilike('name', `%${search}%`);
+      if (categoryId) query = query.eq('category_id', categoryId);
+      if (isActive !== undefined) query = query.eq('is_active', isActive);
+      query = query.order('name').limit(500);
+
+      const { data, count, error: err } = await query;
+      if (err) throw err;
+      setProducts((data as Product[]) || []);
+      setTotal(count || 0);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load products');
     } finally {
@@ -31,8 +32,12 @@ export function useProducts() {
 
   const fetchCategories = useCallback(async () => {
     try {
-      const data = await apiGet<Category[]>('/categories');
-      setCategories(data);
+      const { data, error: err } = await supabase
+        .from('categories')
+        .select('*')
+        .order('sort_order');
+      if (err) throw err;
+      setCategories((data as Category[]) || []);
     } catch {
       // Non-critical
     }
@@ -44,36 +49,66 @@ export function useProducts() {
   }, [fetchProducts, fetchCategories]);
 
   async function createProduct(data: Partial<Product>): Promise<Product> {
-    const result = await apiPost<Product>('/products', data);
+    const { data: result, error: err } = await supabase
+      .from('products')
+      .insert(data)
+      .select()
+      .single();
+    if (err) throw err;
     await fetchProducts();
-    return result;
+    return result as Product;
   }
 
   async function updateProduct(id: string, data: Partial<Product>): Promise<Product> {
-    const result = await apiPut<Product>(`/products/${id}`, data);
+    const { data: result, error: err } = await supabase
+      .from('products')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    if (err) throw err;
     await fetchProducts();
-    return result;
+    return result as Product;
   }
 
   async function deleteProduct(id: string): Promise<void> {
-    await apiDelete(`/products/${id}`);
+    const { error: err } = await supabase
+      .from('products')
+      .update({ is_active: false })
+      .eq('id', id);
+    if (err) throw err;
     await fetchProducts();
   }
 
   async function createCategory(data: { name: string; description?: string }): Promise<Category> {
-    const result = await apiPost<Category>('/categories', data);
+    const { data: result, error: err } = await supabase
+      .from('categories')
+      .insert(data)
+      .select()
+      .single();
+    if (err) throw err;
     await fetchCategories();
-    return result;
+    return result as Category;
   }
 
   async function updateCategory(id: string, data: Partial<Category>): Promise<Category> {
-    const result = await apiPut<Category>(`/categories/${id}`, data);
+    const { data: result, error: err } = await supabase
+      .from('categories')
+      .update(data)
+      .eq('id', id)
+      .select()
+      .single();
+    if (err) throw err;
     await fetchCategories();
-    return result;
+    return result as Category;
   }
 
   async function deleteCategory(id: string): Promise<void> {
-    await apiDelete(`/categories/${id}`);
+    const { error: err } = await supabase
+      .from('categories')
+      .update({ is_active: false })
+      .eq('id', id);
+    if (err) throw err;
     await fetchCategories();
   }
 
