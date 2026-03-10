@@ -239,7 +239,7 @@ export function ForecastPage() {
       ]);
 
       setOrders((ordersData as OrderRow[]) || []);
-      setOrderItems((itemsData as OrderItemRow[]) || []);
+      setOrderItems((itemsData as unknown as OrderItemRow[]) || []);
       // store prior for growth calc
       setPriorOrders((priorData as OrderRow[]) || []);
     } finally {

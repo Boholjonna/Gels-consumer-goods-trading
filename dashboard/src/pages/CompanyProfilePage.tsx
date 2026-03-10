@@ -30,7 +30,7 @@ export function CompanyProfilePage() {
 
   function startEdit(key: FieldKey) {
     setEditingField(key);
-    setEditValue((profile as Record<string, unknown>)?.[key] as string || '');
+    setEditValue((profile?.[key] ?? '') as string);
   }
 
   function cancelEdit() {
@@ -82,7 +82,7 @@ export function CompanyProfilePage() {
       <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden max-w-2xl">
         {fields.map((field, idx) => {
           const isEditing = editingField === field.key;
-          const value = (profile as Record<string, unknown>)?.[field.key] as string | null;
+          const value = (profile?.[field.key] ?? null) as string | null;
 
           return (
             <div

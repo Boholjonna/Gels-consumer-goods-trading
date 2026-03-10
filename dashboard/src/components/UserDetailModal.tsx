@@ -23,8 +23,6 @@ function generateCode(): string {
   return code;
 }
 
-const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] flex-1';
-
 export function UserDetailModal({ user, onClose, onUpdated }: UserDetailModalProps) {
   const [activationCode, setActivationCode] = useState<ActivationCode | null>(
     user.activation_code || null
