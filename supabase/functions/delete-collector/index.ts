@@ -12,6 +12,18 @@ function jsonResponse(body: unknown, status = 200): Response {
   })
 }
 
+/** Decode the `sub` claim from a Bearer JWT without a network round-trip. */
+function extractSubFromJwt(authHeader: string): string | null {
+  try {
+    const token = authHeader.replace(/^Bearer\s+/i, '')
+    const payloadB64 = token.split('.')[1]
+    const json = JSON.parse(atob(payloadB64.replace(/-/g, '+').replace(/_/g, '/')))
+    return (json.sub as string) || null
+  } catch {
+    return null
+  }
+}
+
 Deno.serve(async (req: Request) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -29,13 +41,6 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-
-  // User-scoped client: used only to verify the caller's identity
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-    auth: { persistSession: false },
-  })
 
   // Admin client: elevated privileges for all DB and Auth Admin operations
   const adminClient = createClient(supabaseUrl, serviceRoleKey, {
@@ -43,17 +48,17 @@ Deno.serve(async (req: Request) => {
   })
 
   try {
-    // Verify caller is authenticated
-    const { data: { user: caller }, error: authError } = await userClient.auth.getUser()
-    if (authError || !caller) {
-      return jsonResponse({ error: 'Unauthorized' }, 401)
+    // Verify caller identity from JWT (no extra network call)
+    const callerId = extractSubFromJwt(authHeader)
+    if (!callerId) {
+      return jsonResponse({ error: 'Invalid token' }, 401)
     }
 
     // Verify caller has admin role
     const { data: callerProfile, error: callerProfileError } = await adminClient
       .from('profiles')
       .select('role')
-      .eq('id', caller.id)
+      .eq('id', callerId)
       .single()
 
     if (callerProfileError || !callerProfile || callerProfile.role !== 'admin') {
