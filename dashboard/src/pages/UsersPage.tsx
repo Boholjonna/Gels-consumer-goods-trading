@@ -155,9 +155,8 @@ export function UsersPage() {
   }
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-[#0d1f35]">Collectors</p>
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
+      <div className="flex items-center justify-end mb-3">
         <button
           onClick={() => { resetForm(); setShowCreateModal(true); }}
           className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5"

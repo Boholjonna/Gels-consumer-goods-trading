@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pencil, Check, X, Building2, Loader2 } from 'lucide-react';
+import { Pencil, Check, X, Loader2 } from 'lucide-react';
 import { useCompanyProfile } from '@/hooks/useCompanyProfile';
 import toast from 'react-hot-toast';
 
@@ -54,7 +54,7 @@ export function CompanyProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-4 bg-[#f0f4f8] min-h-full flex items-center justify-center">
+      <div className="p-3 bg-[#f0f4f8] min-h-full flex items-center justify-center">
         <Loader2 className="animate-spin text-[#1a56db]" size={24} />
       </div>
     );
@@ -62,7 +62,7 @@ export function CompanyProfilePage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-[#f0f4f8] min-h-full">
+      <div className="p-3 bg-[#f0f4f8] min-h-full">
         <div className="bg-white border border-[#e2ecf9] rounded-lg p-6 text-center">
           <p className="text-xs text-red-500">{error}</p>
         </div>
@@ -71,14 +71,7 @@ export function CompanyProfilePage() {
   }
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className="w-7 h-7 rounded-lg bg-[#dce8f5] flex items-center justify-center">
-          <Building2 size={14} className="text-[#1a56db]" />
-        </div>
-        <p className="text-sm font-semibold text-[#0d1f35]">Company Profile</p>
-      </div>
-
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
       <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden max-w-2xl">
         {fields.map((field, idx) => {
           const isEditing = editingField === field.key;

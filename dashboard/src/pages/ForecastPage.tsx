@@ -259,7 +259,7 @@ export function ForecastPage() {
   }, [orders, priorOrders, period]);
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
       {/* Period selector */}
       <div className="flex items-center justify-end mb-4 flex-wrap gap-2">
         <div className="flex bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">

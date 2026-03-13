@@ -87,7 +87,6 @@ export function ProductsPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
-  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [importState, setImportState] = useState<ImportState>(null);
   const [replaceExisting, setReplaceExisting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -115,16 +114,6 @@ export function ProductsPage() {
       toast.error('Failed to delete product');
     }
     setDeleteTarget(null);
-  }
-
-  async function handleClearAll() {
-    setShowClearConfirm(false);
-    try {
-      await clearAllProducts();
-      toast.success('All products cleared');
-    } catch {
-      toast.error('Failed to clear products');
-    }
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -200,20 +189,10 @@ export function ProductsPage() {
   const isImporting = importState?.phase === 'importing';
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
       {/* Header row */}
-      <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
-        <p className="text-sm font-semibold text-[#0d1f35]">Products</p>
+      <div className="flex items-center justify-end mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
-          {(products.length > 0 || total > 0) && (
-            <button
-              onClick={() => setShowClearConfirm(true)}
-              className="bg-white border border-red-200 text-red-500 text-xs px-3 py-1.5 rounded-md hover:bg-red-50 flex items-center gap-1.5 transition-colors"
-            >
-              <Trash2 size={13} />
-              Clear All
-            </button>
-          )}
           <input
             type="file"
             accept=".csv"
@@ -530,17 +509,6 @@ export function ProductsPage() {
           confirmLabel="Delete"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
-        />
-      )}
-
-      {/* Clear all products confirm */}
-      {showClearConfirm && (
-        <ConfirmDialog
-          title="Clear All Products"
-          message="This will permanently delete all products. This cannot be undone."
-          confirmLabel="Clear All"
-          onConfirm={handleClearAll}
-          onCancel={() => setShowClearConfirm(false)}
         />
       )}
     </div>

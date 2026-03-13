@@ -30,8 +30,11 @@ export function OrdersPage() {
   async function handleDeleteOrder() {
     if (!deleteTarget) return;
     try {
-      await supabase.from('order_items').delete().eq('order_id', deleteTarget.id);
-      const { error: err } = await supabase.from('orders').delete().eq('id', deleteTarget.id);
+      // order_items cascade automatically via ON DELETE CASCADE
+      const { error: err } = await supabase
+        .from('orders')
+        .delete()
+        .eq('id', deleteTarget.id);
       if (err) throw err;
       toast.success('Order removed');
       refetch();
@@ -46,12 +49,7 @@ export function OrdersPage() {
     statusFilter === 'all' ? orders : orders.filter((o) => o.status === statusFilter);
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-sm font-semibold text-[#0d1f35]">Orders</p>
-        <p className="text-xs text-[#8aa0b8]">{orders.length} total</p>
-      </div>
-
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
       {/* Status filter bar */}
       <div className="bg-white border border-[#e2ecf9] rounded-lg p-2 mb-3 flex gap-1.5 overflow-x-auto flex-wrap">
         {statusFilters.map((status) => {

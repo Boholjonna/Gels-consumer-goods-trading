@@ -29,7 +29,7 @@ function MetricCard({
   accent: string;
 }) {
   return (
-    <div className="bg-white border border-[#e2ecf9] rounded-lg p-4 flex items-start gap-3">
+    <div className="bg-white border border-[#e2ecf9] rounded-lg p-3 flex items-start gap-3">
       <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', accent)}>
         <Icon size={15} />
       </div>
@@ -95,7 +95,7 @@ export function DashboardPage() {
 
   if (error) {
     return (
-      <div className="p-4 bg-[#f0f4f8] min-h-full">
+      <div className="p-3 bg-[#f0f4f8] min-h-full">
         <div className="bg-white border border-[#e2ecf9] rounded-lg p-6 text-center">
           <p className="text-sm text-red-500 mb-3">{error}</p>
           <button
@@ -110,19 +110,19 @@ export function DashboardPage() {
   }
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-[#f0f4f8] min-h-full">
       {/* Metric cards */}
       {loading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="bg-white border border-[#e2ecf9] rounded-lg p-4 animate-pulse">
+            <div key={i} className="bg-white border border-[#e2ecf9] rounded-lg p-3 animate-pulse">
               <div className="h-3 bg-gray-200 rounded w-20 mb-2" />
               <div className="h-6 bg-gray-200 rounded w-12" />
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-3">
           <MetricCard
             title="Today Revenue"
             value={formatCurrency(todayRevenue)}
@@ -155,8 +155,8 @@ export function DashboardPage() {
       )}
 
       {/* Main two-column area */}
-      <div className="flex gap-3 flex-col lg:flex-row">
-        {/* Recent Orders table (60%) */}
+      <div className="flex gap-2 flex-col lg:flex-row">
+        {/* Recent Orders table */}
         <div className="bg-white border border-[#e2ecf9] rounded-lg flex-1 min-w-0">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#e2ecf9]">
             <p className="text-xs font-semibold text-[#0d1f35]">Recent Orders</p>
@@ -233,8 +233,8 @@ export function DashboardPage() {
           )}
         </div>
 
-        {/* Right column (40%) */}
-        <div className="lg:w-[280px] flex-shrink-0 space-y-3">
+        {/* Right column */}
+        <div className="lg:w-[260px] flex-shrink-0 space-y-2">
           {/* Status breakdown */}
           <div className="bg-white border border-[#e2ecf9] rounded-lg p-4">
             <p className="text-xs font-semibold text-[#4b5e73] uppercase tracking-wide mb-3">
