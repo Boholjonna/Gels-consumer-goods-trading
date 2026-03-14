@@ -5,15 +5,8 @@ import { formatCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { clsx } from 'clsx';
 import { TrendingUp, ShoppingCart, Clock, Users, ArrowRight } from 'lucide-react';
+import { statusBadge } from '@/lib/constants';
 import type { Order } from '@/types';
-
-const statusBadge: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-purple-100 text-purple-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-500',
-};
 
 function MetricCard({
   title,
@@ -207,7 +200,7 @@ export function DashboardPage() {
                         {order.stores?.name || '—'}
                       </td>
                       <td className="px-3 py-2 text-xs text-[#4b5e73] hidden md:table-cell">
-                        {(order.profiles as any)?.nickname || order.profiles?.full_name || '—'}
+                        {order.profiles?.nickname || order.profiles?.full_name || '—'}
                       </td>
                       <td className="px-3 py-2 text-xs font-semibold text-[#0d1f35]">
                         {formatCurrency(order.total_amount)}

@@ -5,16 +5,9 @@ import { formatCurrency, formatDate } from '@/lib/formatters';
 import { clsx } from 'clsx';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { PrintableReceipt } from '@/components/PrintableReceipt';
+import { statusBadge } from '@/lib/constants';
 import type { Order } from '@/types';
 import toast from 'react-hot-toast';
-
-const statusBadge: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-purple-100 text-purple-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-500',
-};
 
 const statusFlow = ['pending', 'confirmed', 'processing', 'completed'];
 
@@ -127,7 +120,7 @@ export function OrderDetailPage() {
               <div>
                 <p className="text-[10px] text-[#8aa0b8] uppercase tracking-wide mb-0.5">Collector</p>
                 <p className="text-xs text-[#0d1f35] font-medium">
-                  {(order.profiles as any)?.nickname || order.profiles?.full_name || '—'}
+                  {order.profiles?.nickname || order.profiles?.full_name || '—'}
                 </p>
                 <p className="text-[10px] text-[#8aa0b8]">{order.profiles?.email}</p>
               </div>

@@ -8,17 +8,10 @@ import { formatCurrency } from '@/lib/formatters';
 import { format } from 'date-fns';
 import { ChevronRight, Trash2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { statusBadge } from '@/lib/constants';
 import type { Order } from '@/types';
 
 const statusFilters = ['all', 'pending', 'confirmed', 'processing', 'completed', 'cancelled'] as const;
-
-const statusBadge: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  confirmed: 'bg-blue-100 text-blue-700',
-  processing: 'bg-purple-100 text-purple-700',
-  completed: 'bg-green-100 text-green-700',
-  cancelled: 'bg-red-100 text-red-500',
-};
 
 export function OrdersPage() {
   const navigate = useNavigate();
@@ -138,7 +131,7 @@ export function OrdersPage() {
                       {order.stores?.name || '—'}
                     </td>
                     <td className="px-3 py-2 text-xs text-[#4b5e73] hidden lg:table-cell">
-                      {(order.profiles as any)?.nickname || order.profiles?.full_name || '—'}
+                      {order.profiles?.nickname || order.profiles?.full_name || '—'}
                     </td>
                     <td className="px-3 py-2">
                       <span
