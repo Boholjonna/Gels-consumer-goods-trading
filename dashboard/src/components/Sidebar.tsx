@@ -6,6 +6,8 @@ import {
   Users,
   Building2,
   TrendingUp,
+  BarChart3,
+  Settings,
   ChevronsLeft,
   ChevronsRight,
   X,
@@ -17,9 +19,11 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/orders', label: 'Orders', icon: ShoppingCart },
   { to: '/forecast', label: 'Forecast', icon: TrendingUp },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
   { to: '/products', label: 'Products', icon: Package },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/company', label: 'Company', icon: Building2 },
+  { to: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function Sidebar() {
