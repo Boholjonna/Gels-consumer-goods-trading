@@ -39,6 +39,7 @@ type SortKey = 'product_name' | 'avg_daily_sales' | 'forecast_units' | 'actual_u
 
 const HISTORY_WEEKS = 12;
 const FORECAST_DAYS = 14;
+const PAGE_SIZE = 20;
 
 export function ForecastPage() {
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,7 @@ export function ForecastPage() {
   const [search, setSearch] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('forecast_units');
   const [sortAsc, setSortAsc] = useState(false);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     loadData();
@@ -130,6 +132,7 @@ export function ForecastPage() {
       setSortKey(key);
       setSortAsc(false);
     }
+    setPage(1);
   }
 
   function SortIcon({ column }: { column: SortKey }) {
@@ -164,7 +167,7 @@ export function ForecastPage() {
             type="text"
             placeholder="Search products..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="w-full pl-9 pr-3 py-2 text-xs border border-[#e2ecf9] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1a56db] focus:border-[#1a56db]"
           />
         </div>
@@ -285,7 +288,11 @@ export function ForecastPage() {
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => {
+                {(() => {
+                  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+                  const safePage = Math.min(page, totalPages);
+                  const pagedRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+                  return pagedRows.map((row) => {
                   const diff = row.actual_units - row.forecast_units;
                   const pct =
                     row.forecast_units > 0
@@ -342,23 +349,52 @@ export function ForecastPage() {
                       </td>
                     </tr>
                   );
-                })}
+                });
+                })()}
               </tbody>
             </table>
           </div>
         )}
 
         {/* Footer */}
-        {!loading && rows.length > 0 && (
-          <div className="px-3 py-2 border-t border-[#e2ecf9] bg-[#f8fafd] flex justify-between items-center">
-            <p className="text-[10px] text-[#8aa0b8]">
-              Showing {rows.length} of {forecasts.length} products
-            </p>
-            <p className="text-[10px] text-[#8aa0b8]">
-              Weighted avg based on {HISTORY_WEEKS}-week history
-            </p>
-          </div>
-        )}
+        {!loading && rows.length > 0 && (() => {
+          const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+          const safePage = Math.min(page, totalPages);
+          const startIdx = (safePage - 1) * PAGE_SIZE;
+          return (
+            <div className="px-3 py-2 border-t border-[#e2ecf9] bg-[#f8fafd] flex justify-between items-center">
+              <p className="text-[10px] text-[#8aa0b8]">
+                Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, rows.length)} of {rows.length} products
+              </p>
+              <div className="flex items-center gap-2">
+                {totalPages > 1 && (
+                  <>
+                    <button
+                      disabled={safePage === 1}
+                      onClick={() => setPage((p) => p - 1)}
+                      className="text-[10px] px-2 py-0.5 rounded border border-[#e2ecf9] text-[#4b5e73] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Prev
+                    </button>
+                    <span className="text-[10px] text-[#4b5e73]">
+                      Page {safePage} of {totalPages}
+                    </span>
+                    <button
+                      disabled={safePage === totalPages}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="text-[10px] px-2 py-0.5 rounded border border-[#e2ecf9] text-[#4b5e73] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      Next
+                    </button>
+                  </>
+                )}
+                <p className="text-[10px] text-[#8aa0b8] ml-2">
+                  {HISTORY_WEEKS}-week weighted avg
+                </p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
