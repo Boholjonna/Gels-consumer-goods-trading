@@ -79,7 +79,9 @@ export function DashboardPage() {
     const today = new Date().toDateString();
     const pending = orders.filter((o) => o.status === 'pending');
     const todayOrd = orders.filter((o) => new Date(o.created_at).toDateString() === today);
-    const revenue = todayOrd.reduce((sum, o) => sum + o.total_amount, 0);
+    const revenue = todayOrd
+      .filter((o) => o.status === 'completed')
+      .reduce((sum, o) => sum + o.total_amount, 0);
     const collectors = new Set(todayOrd.map((o) => o.collector_id)).size;
     return { pendingOrders: pending, todayOrders: todayOrd, todayRevenue: revenue, activeCollectors: collectors };
   }, [orders]);
