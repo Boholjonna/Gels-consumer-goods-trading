@@ -31,6 +31,10 @@ backend/*.pyc
 dashboard/node_modules/
 dashboard/dist/
 
+# Scripts
+scripts/node_modules/
+scripts/match-report.txt
+
 .temp
 .venv
 venv
