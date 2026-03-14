@@ -44,11 +44,21 @@ export interface Product {
   category_id: string;
   price: number;
   stock_quantity: number;
+  carton_size: number | null;
   image_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
   categories?: { name: string } | null;
+}
+
+export interface DailySales {
+  id: string;
+  product_id: string;
+  sale_date: string;
+  units_sold: number;
+  is_duty_day: boolean;
+  created_at: string;
 }
 
 export interface Order {
