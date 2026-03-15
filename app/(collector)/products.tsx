@@ -33,7 +33,7 @@ export default function ProductsScreen() {
     refreshing,
     refresh,
   } = useProducts();
-  const { addItem, updateQuantity, items, getItemCount, storeOrders, activeStoreId, setActiveStore } = useCart();
+  const { addItem, updateQuantity, items, getItemCount, storeOrders, activeStoreId, setActiveStore, submittedStores } = useCart();
   const { unreadCount } = useNotifications();
   const { storeId } = useLocalSearchParams<{ storeId?: string }>();
   const cartCount = getItemCount();
@@ -43,8 +43,13 @@ export default function ProductsScreen() {
   const activeStore = storeOrders.find((o) => o.storeId === activeStoreId) ?? null;
 
   useEffect(() => {
-    if (storeId) setActiveStore(storeId);
-  }, [storeId, setActiveStore]);
+    if (!storeId) return;
+    if (submittedStores.has(storeId)) {
+      setActiveStore(null);
+    } else {
+      setActiveStore(storeId);
+    }
+  }, [storeId, submittedStores, setActiveStore]);
 
   // Quantity modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -56,6 +61,7 @@ export default function ProductsScreen() {
   }
 
   function openQuantityModal(product: Product) {
+    if (!activeStoreId) return;
     if (product.stock_quantity <= 0) return;
     const currentInCart = getCartQuantity(product.id);
     setSelectedProduct(product);
@@ -171,6 +177,22 @@ export default function ProductsScreen() {
           )}
         </View>
       </View>
+
+      {/* No-store banner */}
+      {!activeStoreId && (
+        <TouchableOpacity
+          className="mx-3 mt-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 flex-row items-center gap-3"
+          onPress={() => router.push('/(collector)/cart')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="storefront-outline" size={20} color="#3b82f6" />
+          <View className="flex-1">
+            <Text className="text-sm font-bold text-blue-700">No store selected</Text>
+            <Text className="text-xs text-blue-500 mt-0.5">Tap to go to cart and select a store to start ordering</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color="#93c5fd" />
+        </TouchableOpacity>
+      )}
 
       {/* Product Feed */}
       {error ? (

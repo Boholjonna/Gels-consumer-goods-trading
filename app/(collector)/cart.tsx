@@ -33,6 +33,8 @@ export default function CartScreen() {
     submittedStores,
     submittedHistory,
     markStoreSubmitted,
+    activeStoreId,
+    setActiveStore,
   } = useCart();
 
   const { submitOrderForStore, isLoadingStore, getStoreError } = useOrderSubmit();
@@ -84,6 +86,7 @@ export default function CartScreen() {
     const result = await submitOrderForStore(storeId, items);
     if (result) {
       markStoreSubmitted(storeId, storeName, itemCount, subtotal, items);
+      if (activeStoreId === storeId) setActiveStore(null);
     }
   }
 
@@ -161,20 +164,12 @@ export default function CartScreen() {
           return (
             <View
               key={order.storeId}
-              className={`bg-white rounded-xl border overflow-hidden mb-4 ${
-                isSubmitted ? 'border-green-200' : 'border-gray-100'
-              }`}
+              className="bg-white rounded-xl border border-gray-100 overflow-hidden mb-4"
             >
               {/* Card header */}
-              <View
-                className={`flex-row items-center justify-between px-4 py-3 border-b ${
-                  isSubmitted
-                    ? 'border-green-100 bg-green-50'
-                    : 'border-gray-100 bg-gray-50'
-                }`}
-              >
+              <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-100 bg-gray-50">
                 <View className="flex-row items-center flex-1 gap-2">
-                  <View className={`w-1 h-5 rounded-full ${isSubmitted ? 'bg-green-500' : 'bg-blue-500'}`} />
+                  <View className={`w-1 h-5 rounded-full ${isSubmitted ? 'bg-gray-300' : 'bg-blue-500'}`} />
                   <Text className="text-sm font-bold text-gray-800" numberOfLines={1}>
                     {order.storeName}
                   </Text>
