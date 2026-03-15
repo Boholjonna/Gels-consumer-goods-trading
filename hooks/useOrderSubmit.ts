@@ -1,45 +1,54 @@
 import { useState, useRef } from 'react';
 import { createOrder } from '@/services/orders.service';
-import { useCart } from '@/lib/cart';
-import type { CreateOrderResponse } from '@/types';
+import type { CartItem, CreateOrderResponse } from '@/types';
 
 export function useOrderSubmit() {
-  const { items, clearCart } = useCart();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const submittingRef = useRef(false);
+  const [loadingStores, setLoadingStores] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const submittingRef = useRef<Set<string>>(new Set());
 
-  async function submitOrder(notes?: string): Promise<CreateOrderResponse | null> {
+  async function submitOrderForStore(
+    storeId: string,
+    items: CartItem[],
+    notes?: string
+  ): Promise<CreateOrderResponse | null> {
     if (items.length === 0) {
-      setError('Cart is empty');
+      setErrors((prev) => ({ ...prev, [storeId]: 'No items in this store order' }));
       return null;
     }
+    if (submittingRef.current.has(storeId)) return null;
 
-    // Prevent double-submit
-    if (submittingRef.current) return null;
-    submittingRef.current = true;
-
-    setLoading(true);
-    setError(null);
+    submittingRef.current.add(storeId);
+    setLoadingStores((prev) => new Set(prev).add(storeId));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[storeId];
+      return next;
+    });
 
     try {
       const result = await createOrder({
+        store_id: storeId,
         notes,
-        items: items.map((item) => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-        })),
+        items: items.map((i) => ({ product_id: i.product_id, quantity: i.quantity })),
       });
-      clearCart();
       return result;
     } catch (err: any) {
-      setError(err.message || 'Failed to submit order');
+      setErrors((prev) => ({ ...prev, [storeId]: err.message || 'Failed to submit order' }));
       return null;
     } finally {
-      setLoading(false);
-      submittingRef.current = false;
+      submittingRef.current.delete(storeId);
+      setLoadingStores((prev) => {
+        const next = new Set(prev);
+        next.delete(storeId);
+        return next;
+      });
     }
   }
 
-  return { submitOrder, loading, error };
+  return {
+    submitOrderForStore,
+    isLoadingStore: (id: string) => loadingStores.has(id),
+    getStoreError: (id: string) => errors[id] ?? null,
+  };
 }

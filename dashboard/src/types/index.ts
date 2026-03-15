@@ -9,7 +9,6 @@ export interface Profile {
   last_seen_at: string | null;
   nickname: string | null;
   display_id: string | null;
-  branch_id: string | null;
   tag: string | null;
   created_at: string;
   updated_at: string;

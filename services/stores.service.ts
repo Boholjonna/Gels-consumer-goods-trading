@@ -20,3 +20,16 @@ export async function getStore(storeId: string): Promise<Store> {
   if (error) throw new Error(error.message);
   return data as Store;
 }
+
+export async function createStore(name: string): Promise<Store> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error('Not authenticated');
+
+  const { data, error } = await supabase
+    .from('stores')
+    .insert({ name, is_active: true })
+    .select()
+    .single();
+  if (error) throw new Error(error.message);
+  return data as Store;
+}

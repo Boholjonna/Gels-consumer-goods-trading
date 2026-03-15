@@ -1,19 +1,9 @@
 import { Stack, Redirect } from 'expo-router';
 import { useAuth } from '@/lib/auth';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { useEffect } from 'react';
-import { useCart } from '@/lib/cart';
 
 export default function CollectorLayout() {
   const { isAuthenticated, isLoading, user } = useAuth();
-  const { setStore } = useCart();
-
-  // Auto-set store from user's branch
-  useEffect(() => {
-    if (user?.branch_id && user?.branch_name) {
-      setStore(user.branch_id, user.branch_name);
-    }
-  }, [user?.branch_id, user?.branch_name, setStore]);
 
   if (isLoading) {
     return <LoadingSpinner message="Loading..." />;
@@ -36,10 +26,11 @@ export default function CollectorLayout() {
       }}
     >
       <Stack.Screen name="products" options={{ headerShown: false }} />
-      <Stack.Screen name="cart" options={{ title: 'Order Summary' }} />
+      <Stack.Screen name="cart" options={{ title: 'Stores Order Summary' }} />
       <Stack.Screen name="confirmation" options={{ headerShown: false }} />
       <Stack.Screen name="orders" options={{ title: 'Order History' }} />
       <Stack.Screen name="settings" options={{ title: 'Profile' }} />
+      <Stack.Screen name="notifications" options={{ title: 'Notifications' }} />
     </Stack>
   );
 }

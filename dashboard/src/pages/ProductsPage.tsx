@@ -199,6 +199,7 @@ export function ProductsPage() {
             ref={fileInputRef}
             onChange={handleFileChange}
             className="hidden"
+            aria-label="Upload CSV file"
           />
           <button
             onClick={() => fileInputRef.current?.click()}
@@ -326,12 +327,14 @@ export function ProductsPage() {
                           <button
                             onClick={() => navigate(`/products/${product.id}/edit`)}
                             className="text-[#8aa0b8] hover:text-[#1a56db] transition-colors"
+                            title="Edit product"
                           >
                             <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(product)}
                             className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                            title="Delete product"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -431,6 +434,7 @@ export function ProductsPage() {
                               value={row.name}
                               onChange={(e) => updatePreviewRow(row._id, 'name', e.target.value)}
                               className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              aria-label="Product name"
                             />
                           </td>
                           <td className="px-3 py-1.5">
@@ -439,6 +443,7 @@ export function ProductsPage() {
                               value={row.sku}
                               onChange={(e) => updatePreviewRow(row._id, 'sku', e.target.value)}
                               className="w-28 border border-[#dce8f5] rounded px-2 py-1 text-xs font-mono text-[#4b5e73] focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              aria-label="Product SKU"
                             />
                           </td>
                           <td className="px-3 py-1.5">
@@ -449,6 +454,7 @@ export function ProductsPage() {
                               className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-right focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
                               min="0"
                               step="0.01"
+                              aria-label="Product price"
                             />
                           </td>
                           <td className="px-3 py-1.5">
@@ -460,12 +466,14 @@ export function ProductsPage() {
                               }
                               className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-center focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
                               min="0"
+                              aria-label="Stock quantity"
                             />
                           </td>
                           <td className="px-3 py-1.5 text-right">
                             <button
                               onClick={() => removePreviewRow(row._id)}
                               className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                              title="Remove row"
                             >
                               <X size={13} />
                             </button>

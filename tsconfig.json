@@ -6,7 +6,10 @@
     "forceConsistentCasingInFileNames": true,
     "importHelpers": true,
     "jsx": "react-native",
-    "lib": ["dom", "esnext"],
+    "lib": [
+      "dom",
+      "esnext"
+    ],
     "moduleResolution": "bundler",
     "noEmit": true,
     "resolveJsonModule": true,
@@ -14,7 +17,14 @@
     "strict": true,
     "target": "ESNext",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
-  }
+  },
+  "exclude": [
+    "dashboard",
+    "node_modules"
+  ],
+  "extends": "expo/tsconfig.base"
 }

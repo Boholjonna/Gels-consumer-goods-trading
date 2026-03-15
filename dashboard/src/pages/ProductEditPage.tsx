@@ -212,6 +212,7 @@ export function ProductEditPage() {
                 value={stockQuantity}
                 onChange={(e) => setStockQuantity(e.target.value)}
                 className={inputCls}
+                aria-label="Stock quantity"
               />
             </div>
           </div>

@@ -200,6 +200,7 @@ export function OrdersPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); setDeleteTarget(order); }}
                           className="p-1 text-[#8aa0b8] hover:text-red-500 transition-colors"
+                          title="Delete order"
                         >
                           <Trash2 size={13} />
                         </button>

@@ -9,7 +9,7 @@ export async function createOrder(data: CreateOrderRequest): Promise<CreateOrder
     p_collector_id: session.user.id,
     p_store_id: data.store_id || null,
     p_notes: data.notes || null,
-    p_items: JSON.stringify(data.items),
+    p_items: data.items,
   });
 
   if (error) throw new Error(error.message);

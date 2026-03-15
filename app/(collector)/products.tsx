@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   useWindowDimensions,
   Platform,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/lib/cart';
@@ -32,10 +32,17 @@ export default function ProductsScreen() {
     refreshing,
     refresh,
   } = useProducts();
-  const { addItem, updateQuantity, items, getItemCount } = useCart();
+  const { addItem, updateQuantity, items, getItemCount, storeOrders, activeStoreId, setActiveStore } = useCart();
+  const { storeId } = useLocalSearchParams<{ storeId?: string }>();
   const cartCount = getItemCount();
   const { width } = useWindowDimensions();
   const numColumns = width >= 1024 ? 3 : width >= 768 ? 2 : 1;
+
+  const activeStore = storeOrders.find((o) => o.storeId === activeStoreId) ?? null;
+
+  useEffect(() => {
+    if (storeId) setActiveStore(storeId);
+  }, [storeId, setActiveStore]);
 
   // Quantity modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -93,9 +100,19 @@ export default function ProductsScreen() {
             <Text className="text-base font-bold text-gray-800" numberOfLines={1}>
               POS App
             </Text>
-            <Text className="text-xs text-gray-400 mt-0.5">{today}</Text>
+            {activeStore ? (
+              <Text className="text-xs text-blue-600 mt-0.5" numberOfLines={1}>
+                For: {activeStore.storeName}
+              </Text>
+            ) : (
+              <Text className="text-xs text-gray-400 mt-0.5">{today}</Text>
+            )}
           </View>
           <View className="flex-row items-center gap-3">
+            {/* Notifications button */}
+            <TouchableOpacity onPress={() => router.push('/(collector)/notifications')}>
+              <Ionicons name="notifications-outline" size={22} color="#374151" />
+            </TouchableOpacity>
             {/* Order History button */}
             <TouchableOpacity
               onPress={() => router.push('/(collector)/orders')}
@@ -205,42 +222,50 @@ export default function ProductsScreen() {
             return (
               <View style={numColumns > 1 ? { flex: 1 } : undefined}>
                 <TouchableOpacity
-                  className={`bg-white rounded-xl p-3 mb-2.5 border ${
-                    isOutOfStock ? 'border-gray-200 opacity-50' : 'border-gray-100'
+                  className={`bg-white rounded-xl mb-2.5 border overflow-hidden ${
+                    isOutOfStock ? 'border-gray-100 opacity-50' : inCart > 0 ? 'border-blue-200' : 'border-gray-100'
                   }`}
                   onPress={() => openQuantityModal(item)}
                   disabled={isOutOfStock}
                   activeOpacity={0.7}
                 >
+                  {/* Left accent bar */}
                   <View className="flex-row">
-                    {/* Product Info */}
-                    <View className="flex-1 justify-center">
-                      <Text
-                        className="text-base font-semibold text-gray-800"
-                        numberOfLines={1}
-                      >
-                        {item.name}
-                      </Text>
-                      <Text className="text-lg font-bold text-blue-600 mt-0.5">
-                        {formatCurrency(item.price)}
-                      </Text>
-                      <View className="flex-row items-center mt-0.5">
+                    <View className={`w-1 ${isOutOfStock ? 'bg-gray-200' : inCart > 0 ? 'bg-blue-500' : 'bg-gray-200'}`} />
+                    <View className="flex-1 px-3 py-3">
+                      <View className="flex-row items-start justify-between">
+                        <View className="flex-1 mr-2">
+                          <Text className="text-sm font-bold text-gray-800" numberOfLines={2}>
+                            {item.name}
+                          </Text>
+                          <Text className="text-base font-extrabold text-blue-600 mt-1">
+                            {formatCurrency(item.price)}
+                          </Text>
+                        </View>
+                        <View className="items-end gap-1">
+                          {inCart > 0 ? (
+                            <View className="bg-blue-500 rounded-full w-7 h-7 items-center justify-center">
+                              <Text className="text-white text-xs font-bold">{inCart}</Text>
+                            </View>
+                          ) : (
+                            <View className={`rounded-full w-7 h-7 items-center justify-center ${isOutOfStock ? 'bg-gray-100' : 'bg-blue-50'}`}>
+                              <Ionicons name="add" size={16} color={isOutOfStock ? '#9ca3af' : '#3b82f6'} />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <View className="flex-row items-center mt-1.5 gap-2">
                         {isOutOfStock ? (
-                          <Text className="text-xs text-red-500 font-medium">Out of stock</Text>
+                          <View className="bg-red-50 rounded-full px-2 py-0.5">
+                            <Text className="text-[10px] text-red-500 font-semibold">Out of stock</Text>
+                          </View>
                         ) : isLowStock ? (
-                          <Text className="text-xs text-orange-500 font-medium">
-                            {item.stock_quantity} left
-                          </Text>
+                          <View className="bg-orange-50 rounded-full px-2 py-0.5">
+                            <Text className="text-[10px] text-orange-500 font-semibold">Only {item.stock_quantity} left</Text>
+                          </View>
                         ) : (
-                          <Text className="text-xs text-green-600">
-                            {item.stock_quantity} in stock
-                          </Text>
-                        )}
-                        {inCart > 0 && (
-                          <View className="ml-2 bg-blue-100 rounded-full px-2 py-0.5">
-                            <Text className="text-[10px] text-blue-600 font-bold">
-                              {inCart} in cart
-                            </Text>
+                          <View className="bg-green-50 rounded-full px-2 py-0.5">
+                            <Text className="text-[10px] text-green-600 font-semibold">{item.stock_quantity} in stock</Text>
                           </View>
                         )}
                       </View>
@@ -266,36 +291,53 @@ export default function ProductsScreen() {
           onPress={closeModal}
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View className="bg-white rounded-t-2xl px-6 pt-6 pb-10">
+            <View className="bg-white rounded-t-3xl px-6 pt-3 pb-10">
+              {/* Drag handle */}
+              <View className="items-center mb-4">
+                <View className="w-10 h-1 bg-gray-200 rounded-full" />
+              </View>
+
               {selectedProduct && (
                 <>
                   {/* Product info */}
-                  <View className="flex-row items-center mb-6">
-                    <View className="flex-1">
-                      <Text className="text-lg font-bold text-gray-800">
-                        {selectedProduct.name}
-                      </Text>
-                      <Text className="text-xl font-bold text-blue-600 mt-1">
+                  <View className="mb-6">
+                    <Text className="text-xl font-bold text-gray-800 mb-1" numberOfLines={2}>
+                      {selectedProduct.name}
+                    </Text>
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-2xl font-extrabold text-blue-600">
                         {formatCurrency(selectedProduct.price)}
                       </Text>
-                      <Text className="text-xs text-gray-400 mt-0.5">
-                        {selectedProduct.stock_quantity} available
-                      </Text>
+                      <View className={`rounded-full px-3 py-1 ${
+                        selectedProduct.stock_quantity < 10 ? 'bg-orange-50' : 'bg-green-50'
+                      }`}>
+                        <Text className={`text-xs font-semibold ${
+                          selectedProduct.stock_quantity < 10 ? 'text-orange-500' : 'text-green-600'
+                        }`}>
+                          {selectedProduct.stock_quantity} available
+                        </Text>
+                      </View>
                     </View>
                   </View>
 
-                  {/* Quantity controls */}
-                  <View className="flex-row items-center justify-center mb-6">
+                  {/* Divider */}
+                  <View className="h-px bg-gray-100 mb-5" />
+
+                  {/* Quantity label + controls */}
+                  <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                    Quantity
+                  </Text>
+                  <View className="flex-row items-center justify-between bg-gray-50 rounded-2xl px-4 py-3 mb-5">
                     <TouchableOpacity
-                      className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center"
+                      className="w-12 h-12 rounded-xl bg-white border border-gray-200 items-center justify-center"
                       onPress={() => setQuantity((q) => Math.max(1, q - 1))}
                     >
-                      <Ionicons name="remove" size={28} color="#374151" />
+                      <Ionicons name="remove" size={22} color="#374151" />
                     </TouchableOpacity>
 
                     <TextInput
-                      className="mx-6 text-3xl font-bold text-center text-gray-800"
-                      style={{ minWidth: 80 }}
+                      className="text-3xl font-bold text-center text-gray-800"
+                      style={{ minWidth: 72 }}
                       value={quantity.toString()}
                       onChangeText={(text) => {
                         const num = parseInt(text, 10);
@@ -310,37 +352,44 @@ export default function ProductsScreen() {
                     />
 
                     <TouchableOpacity
-                      className="w-14 h-14 rounded-full bg-gray-100 items-center justify-center"
+                      className="w-12 h-12 rounded-xl bg-blue-500 items-center justify-center"
                       onPress={() =>
                         setQuantity((q) => Math.min(q + 1, selectedProduct.stock_quantity))
                       }
+                      disabled={quantity >= selectedProduct.stock_quantity}
+                      activeOpacity={1}
                     >
-                      <Ionicons name="add" size={28} color="#374151" />
+                      <Ionicons name="add" size={22} color="#fff" />
                     </TouchableOpacity>
                   </View>
 
-                  {/* Subtotal */}
-                  <Text className="text-center text-gray-500 mb-4">
-                    Subtotal:{' '}
-                    <Text className="font-bold text-gray-800">
+                  {/* Subtotal row */}
+                  <View className="flex-row items-center justify-between bg-blue-50 rounded-xl px-4 py-3 mb-5">
+                    <Text className="text-sm text-blue-600 font-medium">Subtotal</Text>
+                    <Text className="text-lg font-extrabold text-blue-700">
                       {formatCurrency(selectedProduct.price * quantity)}
                     </Text>
-                  </Text>
+                  </View>
 
                   {/* Add to Order button */}
                   <TouchableOpacity
-                    className={`rounded-xl py-4 items-center ${
-                      quantity > 0 ? 'bg-blue-500' : 'bg-gray-300'
+                    className={`rounded-xl py-4 flex-row items-center justify-center ${
+                      quantity > 0 ? 'bg-blue-500' : 'bg-gray-200'
                     }`}
                     onPress={handleAddToOrder}
                     disabled={quantity <= 0}
                   >
-                    <Text className="text-white font-bold text-base">Add to Order</Text>
+                    <Text className={`font-bold text-sm text-center ${quantity > 0 ? 'text-white' : 'text-gray-400'}`}>
+                      {getCartQuantity(selectedProduct.id) > 0 ? 'Update Order' : 'Add to Order'}
+                    </Text>
                   </TouchableOpacity>
 
                   {/* Cancel */}
-                  <TouchableOpacity className="mt-3 py-3 items-center" onPress={closeModal}>
-                    <Text className="text-gray-500 font-medium">Cancel</Text>
+                  <TouchableOpacity
+                    className="mt-3 py-4 items-center bg-gray-100 rounded-xl"
+                    onPress={closeModal}
+                  >
+                    <Text className="text-gray-500 font-medium text-sm">Cancel</Text>
                   </TouchableOpacity>
                 </>
               )}

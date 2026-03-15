@@ -1,4 +1,5 @@
 {
+    "typescript.tsdk": "node_modules/typescript/lib",
     "chat.tools.terminal.autoApprove": {
         "/^git add \\\\\n  backend/main\\.py \\\\\n  backend/routers/auth\\.py \\\\\n  backend/routers/users\\.py \\\\\n  backend/routers/branches\\.py \\\\\n  backend/schemas/user\\.py \\\\\n  backend/schemas/branch\\.py \\\\\n  backend/services/user_service\\.py \\\\\n  backend/services/activation_service\\.py \\\\\n  backend/services/branch_service\\.py \\\\\n  dashboard/src/App\\.tsx \\\\\n  dashboard/src/components/Sidebar\\.tsx \\\\\n  dashboard/src/components/UserDetailModal\\.tsx \\\\\n  dashboard/src/pages/UsersPage\\.tsx \\\\\n  dashboard/src/pages/BranchesPage\\.tsx \\\\\n  dashboard/src/types/index\\.ts \\\\\n  lib/auth\\.tsx \\\\\n  supabase/migrations/20260225000002_branches_and_profiles\\.sql$/": {
             "approve": true,
