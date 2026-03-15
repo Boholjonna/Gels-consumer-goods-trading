@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
 import { ArrowLeft, Printer } from 'lucide-react';
 import { PrintableReceipt } from '@/components/PrintableReceipt';
+import { printReceiptElement } from '@/lib/printReceipt';
 import { statusBadge } from '@/lib/constants';
 import type { Order } from '@/types';
 import toast from 'react-hot-toast';
@@ -17,6 +18,12 @@ export function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const receiptRef = useRef<HTMLDivElement>(null);
+
+  function handlePrint() {
+    const el = receiptRef.current?.querySelector('#printable-receipt') as HTMLElement | null;
+    if (el) printReceiptElement(el);
+  }
 
   useEffect(() => {
     async function fetchOrder() {
@@ -153,7 +160,7 @@ export function OrderDetailPage() {
                 </button>
               )}
               <button
-                onClick={() => window.print()}
+                onClick={handlePrint}
                 className="bg-[#162F4D] border border-[#1E3F5E]/60 text-[#8FAABE]/70 text-xs px-3 py-1.5 rounded-md hover:bg-[#1A3755] flex items-center gap-1.5 ml-auto"
               >
                 <Printer size={12} />
@@ -220,7 +227,7 @@ export function OrderDetailPage() {
         </div>
       </div>
 
-      <div className="print-receipt-container hidden">
+      <div ref={receiptRef} className="hidden">
         <PrintableReceipt order={order} />
       </div>
     </div>
