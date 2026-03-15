@@ -2,161 +2,184 @@ import type { Order } from '@/types';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import { useCompanyProfile } from '@/hooks/useCompanyProfile';
 
-interface PrintableReceiptProps {
-  order: Order;
+interface CompanyOverride {
+  company_name?: string | null;
+  address?: string | null;
+  contact_phone?: string | null;
+  contact_email?: string | null;
+  receipt_footer?: string | null;
 }
 
-const separator = '- - - - - - - - - - - - - - - - - - - - -';
+interface PrintableReceiptProps {
+  order: Order;
+  companyOverride?: CompanyOverride;
+}
 
-export function PrintableReceipt({ order }: PrintableReceiptProps) {
+const DASH = '------------------------------------------------';
+
+const s = {
+  root: {
+    fontFamily: "'Courier New', Courier, monospace",
+    padding: '8px 10px',
+    maxWidth: '300px',
+    margin: '0 auto',
+    color: '#000',
+    fontSize: '11px',
+    lineHeight: 1.4,
+  },
+  center: { textAlign: 'center' as const },
+  bold: { fontWeight: 'bold' as const },
+  divider: {
+    textAlign: 'center' as const,
+    fontSize: '11px',
+    color: '#444',
+    margin: '4px 0',
+    overflow: 'hidden' as const,
+    whiteSpace: 'nowrap' as const,
+    letterSpacing: '-0.5px',
+  },
+  companyName: {
+    fontSize: '14px',
+    fontWeight: 'bold' as const,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '1px',
+    textAlign: 'center' as const,
+  },
+  subText: { fontSize: '10px', textAlign: 'center' as const },
+  metaRow: { display: 'flex', justifyContent: 'space-between', gap: '4px' },
+  metaLabel: { fontWeight: 'bold' as const, whiteSpace: 'nowrap' as const },
+  table: { width: '100%', borderCollapse: 'collapse' as const, fontSize: '11px' },
+  thLeft: { textAlign: 'left' as const, fontWeight: 'bold' as const, paddingBottom: '2px', borderBottom: '1px solid #000' },
+  thCenter: { textAlign: 'center' as const, fontWeight: 'bold' as const, paddingBottom: '2px', borderBottom: '1px solid #000' },
+  thRight: { textAlign: 'right' as const, fontWeight: 'bold' as const, paddingBottom: '2px', borderBottom: '1px solid #000' },
+  tdLeft: { textAlign: 'left' as const, paddingTop: '2px', paddingBottom: '2px', verticalAlign: 'top' as const },
+  tdCenter: { textAlign: 'center' as const, paddingTop: '2px', paddingBottom: '2px', verticalAlign: 'top' as const },
+  tdRight: { textAlign: 'right' as const, paddingTop: '2px', paddingBottom: '2px', verticalAlign: 'top' as const },
+  totalRow: { display: 'flex', justifyContent: 'space-between', fontSize: '11px' },
+  grandTotal: { display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: 'bold' as const },
+  sigLine: { borderBottom: '1px solid #000', minHeight: '24px' },
+  sigLabel: { textAlign: 'center' as const, fontSize: '10px', paddingTop: '2px' },
+  footer: { textAlign: 'center' as const, fontSize: '9px', color: '#444', marginTop: '8px', whiteSpace: 'pre-wrap' as const },
+} as const;
+
+export function PrintableReceipt({ order, companyOverride }: PrintableReceiptProps) {
   const { profile } = useCompanyProfile();
 
+  const co = companyOverride || {};
+  const companyName = co.company_name ?? profile?.company_name ?? 'Company Name';
+  const address = co.address ?? profile?.address;
+  const phone = co.contact_phone ?? profile?.contact_phone;
+  const email = co.contact_email ?? profile?.contact_email;
+  const footerText = co.receipt_footer ?? profile?.receipt_footer;
+
   return (
-    <div
-      id="printable-receipt"
-      style={{
-        fontFamily: "'Courier New', Courier, monospace",
-        padding: '16px 20px',
-        maxWidth: '380px',
-        margin: '0 auto',
-        color: '#000',
-        fontSize: '12px',
-        lineHeight: 1.5,
-      }}
-    >
-      {/* Header - Company Info */}
-      <div style={{ textAlign: 'center', marginBottom: '8px' }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          {profile?.company_name || 'Company Name'}
+    <div id="printable-receipt" style={s.root}>
+      {/* Header */}
+      <div style={{ textAlign: 'center', marginBottom: '4px' }}>
+        <div style={s.companyName}>{companyName}</div>
+        {address && <div style={s.subText}>{address}</div>}
+        {phone && <div style={s.subText}>Tel: {phone}</div>}
+        {email && <div style={s.subText}>{email}</div>}
+      </div>
+
+      <div style={s.divider}>{DASH}</div>
+
+      {/* Order Metadata */}
+      <div style={{ margin: '4px 0' }}>
+        <div style={s.metaRow}>
+          <span style={s.metaLabel}>Order:</span>
+          <span>{order.order_number}</span>
         </div>
-        {order.stores?.name && (
-          <div style={{ fontSize: '12px', fontWeight: 'bold', marginTop: '2px' }}>
-            {order.stores.name}
+        <div style={s.metaRow}>
+          <span style={s.metaLabel}>Date:</span>
+          <span>{formatDate(order.created_at)}</span>
+        </div>
+        {order.profiles?.full_name && (
+          <div style={s.metaRow}>
+            <span style={s.metaLabel}>Collector:</span>
+            <span>{order.profiles.full_name}</span>
           </div>
         )}
-        {profile?.address && (
-          <div style={{ fontSize: '11px', marginTop: '2px' }}>{profile.address}</div>
-        )}
-        {profile?.contact_phone && (
-          <div style={{ fontSize: '11px' }}>Tel: {profile.contact_phone}</div>
-        )}
-        {profile?.contact_email && (
-          <div style={{ fontSize: '11px' }}>{profile.contact_email}</div>
+        {order.stores?.name && (
+          <div style={s.metaRow}>
+            <span style={s.metaLabel}>Store:</span>
+            <span>{order.stores.name}</span>
+          </div>
         )}
       </div>
 
-      <div style={{ textAlign: 'center', fontSize: '11px', color: '#666' }}>{separator}</div>
+      <div style={s.divider}>{DASH}</div>
 
-      {/* Transaction Metadata */}
-      <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', margin: '6px 0' }}>
-        <tbody>
-          <tr>
-            <td style={{ fontWeight: 'bold', paddingRight: '8px', whiteSpace: 'nowrap' }}>Order</td>
-            <td style={{ textAlign: 'right' }}>{order.order_number}</td>
-          </tr>
-          <tr>
-            <td style={{ fontWeight: 'bold', paddingRight: '8px', whiteSpace: 'nowrap' }}>Date</td>
-            <td style={{ textAlign: 'right' }}>{formatDate(order.created_at)}</td>
-          </tr>
-          {order.profiles?.full_name && (
-            <tr>
-              <td style={{ fontWeight: 'bold', paddingRight: '8px', whiteSpace: 'nowrap' }}>Collector</td>
-              <td style={{ textAlign: 'right' }}>{order.profiles.full_name}</td>
-            </tr>
-          )}
-          {order.stores?.name && (
-            <tr>
-              <td style={{ fontWeight: 'bold', paddingRight: '8px', whiteSpace: 'nowrap' }}>Client</td>
-              <td style={{ textAlign: 'right' }}>{order.stores.name}</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <div style={{ textAlign: 'center', fontSize: '11px', color: '#666' }}>{separator}</div>
-
-      {/* Itemized List */}
-      <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse', margin: '6px 0' }}>
+      {/* Item List */}
+      <table style={s.table}>
         <thead>
-          <tr style={{ borderBottom: '1px solid #000' }}>
-            <th style={{ textAlign: 'left', paddingBottom: '4px', fontWeight: 'bold', width: '40%' }}>Product</th>
-            <th style={{ textAlign: 'center', paddingBottom: '4px', fontWeight: 'bold', width: '10%' }}>Qty</th>
-            <th style={{ textAlign: 'right', paddingBottom: '4px', fontWeight: 'bold', width: '25%' }}>Price</th>
-            <th style={{ textAlign: 'right', paddingBottom: '4px', fontWeight: 'bold', width: '25%' }}>Amount</th>
+          <tr>
+            <th style={s.thLeft}>Item</th>
+            <th style={s.thCenter}>Qty</th>
+            <th style={s.thRight}>Total</th>
           </tr>
         </thead>
         <tbody>
           {order.order_items?.map((item) => (
             <tr key={item.id}>
-              <td style={{ paddingTop: '4px', paddingBottom: '4px', verticalAlign: 'top' }}>
-                {item.product_name}
-              </td>
-              <td style={{ textAlign: 'center', paddingTop: '4px', paddingBottom: '4px', verticalAlign: 'top' }}>
-                {item.quantity}
-              </td>
-              <td style={{ textAlign: 'right', paddingTop: '4px', paddingBottom: '4px', verticalAlign: 'top' }}>
-                {formatCurrency(item.unit_price)}
-              </td>
-              <td style={{ textAlign: 'right', paddingTop: '4px', paddingBottom: '4px', verticalAlign: 'top' }}>
-                {formatCurrency(item.line_total)}
-              </td>
+              <td style={s.tdLeft}>{item.product_name}</td>
+              <td style={s.tdCenter}>{item.quantity}</td>
+              <td style={s.tdRight}>{formatCurrency(item.line_total)}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      <div style={{ textAlign: 'center', fontSize: '11px', color: '#666' }}>{separator}</div>
+      <div style={s.divider}>{DASH}</div>
 
-      {/* Grand Total */}
-      <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse', margin: '6px 0' }}>
-        <tbody>
-          <tr>
-            <td style={{ fontWeight: 'bold' }}>GRAND TOTAL</td>
-            <td style={{ textAlign: 'right', fontWeight: 'bold' }}>{formatCurrency(order.total_amount)}</td>
-          </tr>
-        </tbody>
-      </table>
+      {/* Totals */}
+      <div style={{ margin: '4px 0' }}>
+        <div style={s.totalRow}>
+          <span>Subtotal</span>
+          <span>{formatCurrency(order.subtotal)}</span>
+        </div>
+        <div style={s.totalRow}>
+          <span>Tax</span>
+          <span>{formatCurrency(order.tax_amount)}</span>
+        </div>
+        <div style={{ ...s.grandTotal, marginTop: '2px', paddingTop: '2px', borderTop: '1px solid #000' }}>
+          <span>TOTAL</span>
+          <span>{formatCurrency(order.total_amount)}</span>
+        </div>
+      </div>
 
       {order.notes && (
         <>
-          <div style={{ textAlign: 'center', fontSize: '11px', color: '#666' }}>{separator}</div>
-          <div style={{ fontSize: '11px', margin: '6px 0' }}>
-            <span style={{ fontWeight: 'bold' }}>Notes:</span> {order.notes}
+          <div style={s.divider}>{DASH}</div>
+          <div style={{ fontSize: '10px', margin: '4px 0' }}>
+            <span style={s.bold}>Notes:</span> {order.notes}
           </div>
         </>
       )}
 
-      <div style={{ textAlign: 'center', fontSize: '11px', color: '#666' }}>{separator}</div>
+      <div style={s.divider}>{DASH}</div>
 
       {/* Signature Lines */}
-      <div style={{ marginTop: '28px', marginBottom: '12px' }}>
-        <table style={{ width: '100%', fontSize: '11px', borderCollapse: 'collapse' }}>
+      <div style={{ margin: '20px 0 8px' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <tbody>
             <tr>
-              <td style={{ width: '45%', textAlign: 'center', verticalAlign: 'bottom', paddingBottom: '4px' }}>
-                <div style={{ borderBottom: '1px solid #000', minHeight: '28px' }} />
-              </td>
+              <td style={{ width: '45%' }}><div style={s.sigLine} /></td>
               <td style={{ width: '10%' }} />
-              <td style={{ width: '45%', textAlign: 'center', verticalAlign: 'bottom', paddingBottom: '4px' }}>
-                <div style={{ borderBottom: '1px solid #000', minHeight: '28px' }} />
-              </td>
+              <td style={{ width: '45%' }}><div style={s.sigLine} /></td>
             </tr>
             <tr>
-              <td style={{ textAlign: 'center', paddingTop: '2px' }}>Received By</td>
+              <td style={s.sigLabel}>Received By</td>
               <td />
-              <td style={{ textAlign: 'center', paddingTop: '2px' }}>Prepared By</td>
+              <td style={s.sigLabel}>Prepared By</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       {/* Footer */}
-      <div style={{ textAlign: 'center', fontSize: '10px', color: '#444', marginTop: '16px' }}>
-        {profile?.receipt_footer ? (
-          <div style={{ whiteSpace: 'pre-wrap' }}>{profile.receipt_footer}</div>
-        ) : (
-          <div>Thank you for your order!</div>
-        )}
+      <div style={s.footer}>
+        {footerText || 'Thank you for your order!'}
       </div>
     </div>
   );
