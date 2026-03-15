@@ -71,6 +71,44 @@ function RadioGroup({ value, options, onChange }: {
   );
 }
 
+const NOTIF_STORAGE_KEY = 'notification-prefs';
+
+interface NotifPrefs {
+  push: boolean;
+  orders: boolean;
+  stock: boolean;
+}
+
+function loadNotifPrefs(): NotifPrefs {
+  try {
+    const saved = localStorage.getItem(NOTIF_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch { /* ignore */ }
+  return { push: true, orders: true, stock: true };
+}
+
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full transition-colors duration-200',
+        checked ? 'bg-[#5B9BD5]' : 'bg-[#1E3F5E]'
+      )}
+    >
+      <span
+        className={cn(
+          'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5',
+          checked ? 'translate-x-[18px] ml-0' : 'translate-x-[2px]'
+        )}
+      />
+    </button>
+  );
+}
+
 export function SettingsPage() {
   const { total, clearAllProducts } = useProducts();
   const { mode, setMode } = useSidebar();
@@ -79,6 +117,20 @@ export function SettingsPage() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('general');
   const [systemInfo, setSystemInfo] = useState<SystemInfo>({ orderCount: 0, productCount: 0, userCount: 0, storeCount: 0 });
   const [exporting, setExporting] = useState<string | null>(null);
+  const [notifPrefs, setNotifPrefs] = useState<NotifPrefs>(loadNotifPrefs);
+
+  function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
+    setNotifPrefs((prev) => {
+      // If turning off push, turn off all sub-toggles too
+      const next = key === 'push' && !value
+        ? { push: false, orders: false, stock: false }
+        : { ...prev, [key]: value };
+      // If turning on a sub-toggle, ensure push is on
+      if (key !== 'push' && value) next.push = true;
+      localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(next));
+      return next;
+    });
+  }
 
   useEffect(() => {
     async function loadCounts() {
@@ -143,7 +195,8 @@ export function SettingsPage() {
   ];
 
   return (
-    <div className="p-3 bg-[#0D1F33] min-h-full">
+    <div className="p-3 bg-[#0D1F33] min-h-full flex justify-center">
+      <div className="w-full max-w-5xl">
       {/* Header */}
       <div className="mb-4">
         <h1 className="text-sm font-bold text-[#E8EDF2]">Settings</h1>
@@ -218,21 +271,21 @@ export function SettingsPage() {
                     <p className={itemLabelCls}>Push Notifications</p>
                     <p className={itemDescCls}>Real-time order and stock alerts via the bell icon</p>
                   </div>
-                  <span className="text-[10px] text-[#98C379] bg-[#98C379]/10 px-2 py-0.5 rounded-full font-medium">Active</span>
+                  <Toggle checked={notifPrefs.push} onChange={(v) => updateNotifPref('push', v)} />
                 </div>
                 <div className={itemCls}>
                   <div>
-                    <p className={itemLabelCls}>Order Alerts</p>
-                    <p className={itemDescCls}>New orders, status changes</p>
+                    <p className={cn(itemLabelCls, !notifPrefs.push && 'opacity-40')}>Order Alerts</p>
+                    <p className={cn(itemDescCls, !notifPrefs.push && 'opacity-40')}>New orders, status changes</p>
                   </div>
-                  <span className="text-[10px] text-[#98C379] bg-[#98C379]/10 px-2 py-0.5 rounded-full font-medium">Active</span>
+                  <Toggle checked={notifPrefs.orders} onChange={(v) => updateNotifPref('orders', v)} />
                 </div>
                 <div className={itemCls}>
                   <div>
-                    <p className={itemLabelCls}>Stock Alerts</p>
-                    <p className={itemDescCls}>Low stock and out of stock warnings</p>
+                    <p className={cn(itemLabelCls, !notifPrefs.push && 'opacity-40')}>Stock Alerts</p>
+                    <p className={cn(itemDescCls, !notifPrefs.push && 'opacity-40')}>Low stock and out of stock warnings</p>
                   </div>
-                  <span className="text-[10px] text-[#98C379] bg-[#98C379]/10 px-2 py-0.5 rounded-full font-medium">Active</span>
+                  <Toggle checked={notifPrefs.stock} onChange={(v) => updateNotifPref('stock', v)} />
                 </div>
               </div>
             </div>
@@ -396,6 +449,7 @@ export function SettingsPage() {
           onCancel={() => setShowClearConfirm(false)}
         />
       )}
+      </div>
     </div>
   );
 }
