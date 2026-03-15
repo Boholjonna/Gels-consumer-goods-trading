@@ -1,16 +1,40 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Wifi, WifiOff, Search } from 'lucide-react';
+import { Plus, Wifi, WifiOff, Search, ChevronUp, ChevronDown, ChevronRight, Users } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { UserDetailModal } from '@/components/UserDetailModal';
 import { cn } from '@/lib/utils';
 import type { Profile, ActivationCode } from '@/types';
 import toast from 'react-hot-toast';
+import { formatDistanceToNow } from 'date-fns';
 
 type UserWithCode = Profile & { activation_code?: ActivationCode | null };
+
+type StatusTab = 'all' | 'active' | 'inactive';
+type ConnFilter = 'all' | 'online' | 'offline' | 'not_connected';
+type SortField = 'nickname' | 'created_at' | 'last_seen_at';
+type SortDir = 'asc' | 'desc';
+
+const statusTabs: { key: StatusTab; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'active', label: 'Active' },
+  { key: 'inactive', label: 'Inactive' },
+];
+
+const connOptions: { key: ConnFilter; label: string }[] = [
+  { key: 'all', label: 'All connections' },
+  { key: 'online', label: 'Online' },
+  { key: 'offline', label: 'Offline' },
+  { key: 'not_connected', label: 'Not connected' },
+];
 
 const inputCls = 'border border-[#1E3F5E]/60 rounded-md px-2.5 py-1.5 text-xs bg-[#0D1F33] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] w-full';
 const labelCls = 'block text-xs font-medium text-[#8FAABE]/70 mb-1';
 const PAGE_SIZE = 20;
+
+function isOnline(user: Profile) {
+  if (!user.last_seen_at) return false;
+  return new Date().getTime() - new Date(user.last_seen_at).getTime() < 5 * 60 * 1000;
+}
 
 export function UsersPage() {
   const [users, setUsers] = useState<Profile[]>([]);
@@ -22,6 +46,10 @@ export function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserWithCode | null>(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
+  const [statusTab, setStatusTab] = useState<StatusTab>('all');
+  const [connFilter, setConnFilter] = useState<ConnFilter>('all');
+  const [sortField, setSortField] = useState<SortField>('created_at');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
 
   // Form state
   const [nickname, setNickname] = useState('');
@@ -152,198 +180,294 @@ export function UsersPage() {
     setFormError('');
   }
 
-  function isOnline(user: Profile) {
-    if (!user.last_seen_at) return false;
-    return new Date().getTime() - new Date(user.last_seen_at).getTime() < 5 * 60 * 1000;
+  function handleStatusTab(tab: StatusTab) {
+    setStatusTab(tab);
+    setPage(1);
+  }
+
+  function handleConnFilter(filter: ConnFilter) {
+    setConnFilter(filter);
+    setPage(1);
+  }
+
+  function toggleSort(field: SortField) {
+    if (sortField === field) {
+      setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortDir(field === 'nickname' ? 'asc' : 'desc');
+    }
+    setPage(1);
+  }
+
+  function SortIcon({ column }: { column: SortField }) {
+    if (sortField !== column) return <ChevronDown size={12} className="text-[#8FAABE]/30 ml-0.5 inline" />;
+    return sortDir === 'asc'
+      ? <ChevronUp size={12} className="text-[#5B9BD5] ml-0.5 inline" />
+      : <ChevronDown size={12} className="text-[#5B9BD5] ml-0.5 inline" />;
   }
 
   const filteredUsers = useMemo(() => {
-    if (!search) return users;
-    const q = search.toLowerCase();
-    return users.filter(
-      (u) =>
-        (u.nickname || '').toLowerCase().includes(q) ||
-        (u.display_id || '').toLowerCase().includes(q) ||
-        (u.tag || '').toLowerCase().includes(q)
-    );
-  }, [users, search]);
+    let result = users;
+
+    // Status filter
+    if (statusTab === 'active') result = result.filter((u) => u.is_active);
+    else if (statusTab === 'inactive') result = result.filter((u) => !u.is_active);
+
+    // Connection filter
+    if (connFilter === 'online') result = result.filter((u) => isOnline(u));
+    else if (connFilter === 'offline') result = result.filter((u) => u.device_connected_at && !isOnline(u));
+    else if (connFilter === 'not_connected') result = result.filter((u) => !u.device_connected_at);
+
+    // Search
+    if (search) {
+      const q = search.toLowerCase();
+      result = result.filter(
+        (u) =>
+          (u.nickname || '').toLowerCase().includes(q) ||
+          (u.display_id || '').toLowerCase().includes(q) ||
+          (u.tag || '').toLowerCase().includes(q)
+      );
+    }
+
+    // Sort
+    result = [...result].sort((a, b) => {
+      let cmp = 0;
+      if (sortField === 'nickname') {
+        cmp = (a.nickname || a.full_name || '').localeCompare(b.nickname || b.full_name || '');
+      } else if (sortField === 'created_at') {
+        cmp = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortField === 'last_seen_at') {
+        const aTime = a.last_seen_at ? new Date(a.last_seen_at).getTime() : 0;
+        const bTime = b.last_seen_at ? new Date(b.last_seen_at).getTime() : 0;
+        cmp = aTime - bTime;
+      }
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    return result;
+  }, [users, search, statusTab, connFilter, sortField, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filteredUsers.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const pagedUsers = filteredUsers.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const startIdx = (safePage - 1) * PAGE_SIZE;
+
+  // Summary counts
+  const onlineCount = users.filter((u) => isOnline(u)).length;
+  const activeCount = users.filter((u) => u.is_active).length;
 
   return (
     <div className="p-3 bg-[#0D1F33] min-h-full">
+      {/* Top bar: search + connection filter + add button */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
-          <Search
-            size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8FAABE]/50"
-          />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8FAABE]/40" />
           <input
             type="text"
             placeholder="Search by nickname, ID, or tag..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-[#1E3F5E]/60 rounded-lg bg-[#162F4D] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-1 focus:ring-[#5B9BD5] focus:border-[#5B9BD5]"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-[#1E3F5E]/60 rounded-lg bg-[#162F4D] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]"
           />
         </div>
+
+        <select
+          value={connFilter}
+          onChange={(e) => handleConnFilter(e.target.value as ConnFilter)}
+          className="text-xs bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg px-2 py-2 text-[#E8EDF2] focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] cursor-pointer"
+        >
+          {connOptions.map((opt) => (
+            <option key={opt.key} value={opt.key}>{opt.label}</option>
+          ))}
+        </select>
+
         <button
           onClick={() => { resetForm(); setShowCreateModal(true); }}
-          className="bg-[#5B9BD5] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#4A8BC4] flex items-center gap-1.5"
+          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium bg-[#5B9BD5] text-white rounded-lg hover:bg-[#4A8BC4] transition-colors"
         >
           <Plus size={13} />
           Add Collector
         </button>
       </div>
 
+      {/* Status tabs with summary badges */}
+      <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg p-2 mb-3 flex items-center gap-1.5 flex-wrap">
+        {statusTabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleStatusTab(tab.key)}
+            className={cn(
+              'px-2.5 py-1 rounded text-xs font-medium transition-colors',
+              statusTab === tab.key
+                ? 'bg-[#5B9BD5] text-white'
+                : 'text-[#E8EDF2]/80 hover:bg-[#1A3755]'
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+        <div className="ml-auto flex items-center gap-3">
+          <span className="text-[10px] text-[#98C379] tabular-nums">{onlineCount} online</span>
+          <span className="text-[10px] text-[#8FAABE]/50 tabular-nums">{activeCount}/{users.length} active</span>
+        </div>
+      </div>
+
+      {/* Users table */}
       <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-4 space-y-2">
-            {[...Array(5)].map((_, i) => (
+            {[...Array(8)].map((_, i) => (
               <div key={i} className="flex gap-3 animate-pulse py-1">
-                <div className="h-3 bg-[#1A3755] rounded w-20" />
+                <div className="h-3 bg-[#1A3755] rounded w-16" />
                 <div className="h-3 bg-[#1A3755] rounded flex-1" />
+                <div className="h-3 bg-[#1A3755] rounded w-20" />
+                <div className="h-3 bg-[#1A3755] rounded w-12" />
                 <div className="h-3 bg-[#1A3755] rounded w-16" />
               </div>
             ))}
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="py-16 text-center">
+            <Users size={24} className="text-[#8FAABE]/30 mx-auto mb-2" />
             <p className="text-xs text-[#8FAABE]/50">
-              {search ? 'No collectors match your search' : 'No collectors found'}
+              {search ? 'No collectors match your search' : connFilter !== 'all' ? 'No collectors with this connection status' : statusTab !== 'all' ? `No ${statusTab} collectors` : 'No collectors found'}
             </p>
-            {!search && (
+            {!search && connFilter === 'all' && statusTab === 'all' && (
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
-                className="mt-2 text-xs text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
+                className="mt-2 text-xs text-[#5B9BD5] hover:text-[#7EB8E0] font-medium"
               >
                 Add your first collector
               </button>
             )}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-[#1E3F5E]/60 bg-[#1A3755]/50">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">ID</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Nickname</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide hidden md:table-cell">Connected</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Status</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pagedUsers.map((user) => (
-                  <tr
-                    key={user.id}
-                    className="border-b border-[#1E3F5E]/30 hover:bg-[#1A3755]/40 cursor-pointer transition-colors"
-                    onClick={() => handleRowClick(user)}
-                  >
-                    <td className="px-3 py-2 font-mono text-[10px] text-[#8FAABE]/50">
-                      {user.display_id || user.id.slice(0, 8)}
-                    </td>
-                    <td className="px-3 py-2 text-xs font-medium text-[#E8EDF2]">
-                      {user.nickname || user.full_name}
-                      {user.tag && (
-                        <span className="ml-1.5 px-1 py-0.5 bg-[#0D1F33] text-[#8FAABE]/50 text-[9px] rounded">
-                          {user.tag}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 hidden md:table-cell">
-                      <div className="flex items-center gap-1.5">
-                        {user.device_connected_at ? (
-                          <>
-                            {isOnline(user) ? (
-                              <Wifi size={12} className="text-[#98C379]" />
-                            ) : (
-                              <WifiOff size={12} className="text-[#8FAABE]/50" />
-                            )}
-                            <span className={cn(
-                              'text-[10px]',
-                              isOnline(user) ? 'text-[#98C379]' : 'text-[#8FAABE]/50'
-                            )}>
-                              {isOnline(user) ? 'Online' : 'Offline'}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-[10px] text-[#8FAABE]/50">Not connected</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <span className={cn(
-                        'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                        user.is_active ? 'bg-[#98C379]/10 text-[#98C379]' : 'bg-[#1A3755]/30 text-[#8FAABE]/50'
-                      )}>
-                        {user.is_active ? 'active' : 'inactive'}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-right">
-                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
-                        {user.is_active ? (
-                          <button
-                            onClick={() => setDeactivateTarget(user)}
-                            className="text-[10px] text-[#E8EDF2]/80 hover:text-[#E8EDF2] font-medium"
-                          >
-                            Deactivate
-                          </button>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleActivate(user)}
-                              className="text-[10px] text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
-                            >
-                              Activate
-                            </button>
-                            <button
-                              onClick={() => { setDeleteTarget(user); setDeleteConfirmName(''); }}
-                              className="text-[10px] text-[#E06C75] hover:text-[#E06C75] font-medium"
-                            >
-                              Delete
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b-2 border-[#1E3F5E]/60 bg-[#1A3755]/50">
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider">ID</th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort('nickname')}>
+                      Nickname <SortIcon column="nickname" />
+                    </th>
+                    <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider hidden md:table-cell">Tag</th>
+                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider hidden md:table-cell cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort('last_seen_at')}>
+                      Connection <SortIcon column="last_seen_at" />
+                    </th>
+                    <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider">Status</th>
+                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort('created_at')}>
+                      Joined <SortIcon column="created_at" />
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                </thead>
+                <tbody>
+                  {pagedUsers.map((user) => (
+                    <tr
+                      key={user.id}
+                      tabIndex={0}
+                      className="border-b border-[#1E3F5E]/30 transition-colors hover:bg-[#1A3755]/40 cursor-pointer focus:outline-none focus-visible:bg-[#1A3755]/60"
+                      onClick={() => handleRowClick(user)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleRowClick(user); }}
+                    >
+                      <td className="px-3 py-2 font-mono text-[10px] text-[#8FAABE]/50">
+                        {user.display_id || user.id.slice(0, 8)}
+                      </td>
+                      <td className="px-3 py-2">
+                        <p className="text-xs font-medium text-[#E8EDF2]">
+                          {user.nickname || user.full_name}
+                        </p>
+                      </td>
+                      <td className="px-3 py-2 hidden md:table-cell">
+                        {user.tag ? (
+                          <span className="px-1.5 py-0.5 bg-[#0D1F33] text-[#8FAABE]/60 text-[10px] rounded font-medium">
+                            {user.tag}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-[#8FAABE]/30">--</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 hidden md:table-cell">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {user.device_connected_at ? (
+                            <>
+                              {isOnline(user) ? (
+                                <Wifi size={12} className="text-[#98C379]" />
+                              ) : (
+                                <WifiOff size={12} className="text-[#8FAABE]/50" />
+                              )}
+                              <span className={cn(
+                                'text-[10px]',
+                                isOnline(user) ? 'text-[#98C379]' : 'text-[#8FAABE]/50'
+                              )}>
+                                {isOnline(user) ? 'Online' : user.last_seen_at ? formatDistanceToNow(new Date(user.last_seen_at), { addSuffix: true }) : 'Offline'}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-[#8FAABE]/30">Not connected</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span className={cn(
+                          'px-1.5 py-0.5 rounded text-[10px] font-medium',
+                          user.is_active ? 'bg-[#98C379]/10 text-[#98C379]' : 'bg-[#8FAABE]/10 text-[#8FAABE]/50'
+                        )}>
+                          {user.is_active ? 'active' : 'inactive'}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <span className="text-[10px] text-[#8FAABE]/50 tabular-nums">
+                          {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-right">
+                        <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                          {user.is_active ? (
+                            <button
+                              onClick={() => setDeactivateTarget(user)}
+                              className="text-[10px] text-[#E8EDF2]/80 hover:text-[#E8EDF2] font-medium"
+                            >
+                              Deactivate
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleActivate(user)}
+                                className="text-[10px] text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
+                              >
+                                Activate
+                              </button>
+                              <button
+                                onClick={() => { setDeleteTarget(user); setDeleteConfirmName(''); }}
+                                className="text-[10px] text-[#E06C75] hover:text-[#E06C75]/80 font-medium"
+                              >
+                                Delete
+                              </button>
+                            </>
+                          )}
+                          <ChevronRight size={14} className="text-[#8FAABE]/20" />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-        {/* Pagination footer */}
-        {!loading && filteredUsers.length > 0 && (
-          <div className="px-3 py-2 border-t border-[#1E3F5E]/60 bg-[#1A3755]/50 flex justify-between items-center">
-            <p className="text-[10px] text-[#8FAABE]/50">
-              Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
-            </p>
-            {totalPages > 1 && (
-              <div className="flex items-center gap-2">
-                <button
-                  disabled={safePage === 1}
-                  onClick={() => setPage((p) => p - 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#E8EDF2]/80 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Prev
-                </button>
-                <span className="text-[10px] text-[#E8EDF2]/80">
-                  Page {safePage} of {totalPages}
-                </span>
-                <button
-                  disabled={safePage === totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#E8EDF2]/80 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Next
-                </button>
-              </div>
-            )}
-          </div>
+            {/* Pagination */}
+            <div className="flex items-center justify-between px-3 py-2 border-t border-[#1E3F5E]/60 bg-[#1A3755]/50">
+              <span className="text-[10px] text-[#8FAABE]/50 tabular-nums">{filteredUsers.length} collector{filteredUsers.length !== 1 ? 's' : ''}</span>
+              {totalPages > 1 && (
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setPage((p) => p - 1)} disabled={safePage === 1} className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#8FAABE]/70 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Prev</button>
+                  <span className="text-[10px] text-[#8FAABE]/50 tabular-nums px-1">Page {safePage} of {totalPages}</span>
+                  <button onClick={() => setPage((p) => p + 1)} disabled={safePage >= totalPages} className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#8FAABE]/70 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Next</button>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </div>
 
