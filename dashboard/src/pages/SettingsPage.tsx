@@ -21,41 +21,40 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="p-3 bg-background min-h-full">
+    <div className="p-3 bg-[#0D1F33] min-h-full">
       <div className="max-w-2xl space-y-3">
-        {/* Danger Zone - Collapsible */}
-        <div className="bg-card border border-border rounded-lg overflow-hidden">
+        <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
           <button
             onClick={() => setDangerOpen(!dangerOpen)}
-            className="w-full flex items-center justify-between px-4 py-3 hover:bg-secondary transition-colors"
+            className="w-full flex items-center justify-between px-4 py-3 hover:bg-[#1A3755]/40 transition-colors"
           >
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-red-500" />
-              <span className="text-xs font-semibold text-foreground">Sensitive Settings</span>
+              <AlertTriangle size={14} className="text-[#E06C75]" />
+              <span className="text-xs font-semibold text-[#E8EDF2]">Sensitive Settings</span>
             </div>
             <ChevronDown
               size={14}
               className={cn(
-                'text-muted-foreground transition-transform',
+                'text-[#8FAABE]/50 transition-transform',
                 dangerOpen && 'rotate-180'
               )}
             />
           </button>
 
           {dangerOpen && (
-            <div className="px-4 pb-4 border-t border-border">
-              <div className="mt-3 p-3 border border-red-100 rounded-lg bg-red-50/50">
+            <div className="px-4 pb-4 border-t border-[#1E3F5E]/60">
+              <div className="mt-3 p-3 border border-[#E06C75]/20 rounded-lg bg-[#E06C75]/5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs font-medium text-foreground">Clear All Products</p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="text-xs font-medium text-[#E8EDF2]">Clear All Products</p>
+                    <p className="text-[10px] text-[#8FAABE]/50 mt-0.5">
                       Permanently delete all products from the database. This cannot be undone.
                     </p>
                   </div>
                   <button
                     onClick={() => setShowClearConfirm(true)}
                     disabled={total === 0}
-                    className="bg-card border border-red-200 text-red-500 text-xs px-3 py-1.5 rounded-md hover:bg-red-50 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 ml-4"
+                    className="bg-[#162F4D] border border-[#E06C75]/30 text-[#E06C75] text-xs px-3 py-1.5 rounded-md hover:bg-[#E06C75]/10 flex items-center gap-1.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0 ml-4"
                   >
                     <Trash2 size={13} />
                     Clear All

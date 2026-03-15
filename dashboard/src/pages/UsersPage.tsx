@@ -8,8 +8,8 @@ import toast from 'react-hot-toast';
 
 type UserWithCode = Profile & { activation_code?: ActivationCode | null };
 
-const inputCls = 'border border-input rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring w-full';
-const labelCls = 'block text-xs font-medium text-foreground/80 mb-1';
+const inputCls = 'border border-[#1E3F5E]/60 rounded-md px-2.5 py-1.5 text-xs bg-[#0D1F33] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] w-full';
+const labelCls = 'block text-xs font-medium text-[#8FAABE]/70 mb-1';
 const PAGE_SIZE = 20;
 
 export function UsersPage() {
@@ -174,50 +174,50 @@ export function UsersPage() {
   const startIdx = (safePage - 1) * PAGE_SIZE;
 
   return (
-    <div className="p-3 bg-background min-h-full">
+    <div className="p-3 bg-[#0D1F33] min-h-full">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8FAABE]/50"
           />
           <input
             type="text"
             placeholder="Search by nickname, ID, or tag..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-[#1E3F5E]/60 rounded-lg bg-[#162F4D] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-1 focus:ring-[#5B9BD5] focus:border-[#5B9BD5]"
           />
         </div>
         <button
           onClick={() => { resetForm(); setShowCreateModal(true); }}
-          className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 flex items-center gap-1.5"
+          className="bg-[#5B9BD5] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#4A8BC4] flex items-center gap-1.5"
         >
           <Plus size={13} />
           Add Collector
         </button>
       </div>
 
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-4 space-y-2">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex gap-3 animate-pulse py-1">
-                <div className="h-3 bg-gray-200 rounded w-20" />
-                <div className="h-3 bg-gray-200 rounded flex-1" />
-                <div className="h-3 bg-gray-200 rounded w-16" />
+                <div className="h-3 bg-[#1A3755] rounded w-20" />
+                <div className="h-3 bg-[#1A3755] rounded flex-1" />
+                <div className="h-3 bg-[#1A3755] rounded w-16" />
               </div>
             ))}
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-[#8FAABE]/50">
               {search ? 'No collectors match your search' : 'No collectors found'}
             </p>
             {!search && (
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
-                className="mt-2 text-xs text-primary hover:text-primary/80 font-medium"
+                className="mt-2 text-xs text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
               >
                 Add your first collector
               </button>
@@ -227,28 +227,28 @@ export function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-secondary">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">ID</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Nickname</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Connected</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
+                <tr className="border-b border-[#1E3F5E]/60 bg-[#1A3755]/50">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Nickname</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide hidden md:table-cell">Connected</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Status</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8FAABE]/50 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-muted hover:bg-secondary cursor-pointer transition-colors"
+                    className="border-b border-[#1E3F5E]/30 hover:bg-[#1A3755]/40 cursor-pointer transition-colors"
                     onClick={() => handleRowClick(user)}
                   >
-                    <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
+                    <td className="px-3 py-2 font-mono text-[10px] text-[#8FAABE]/50">
                       {user.display_id || user.id.slice(0, 8)}
                     </td>
-                    <td className="px-3 py-2 text-xs font-medium text-foreground">
+                    <td className="px-3 py-2 text-xs font-medium text-[#E8EDF2]">
                       {user.nickname || user.full_name}
                       {user.tag && (
-                        <span className="ml-1.5 px-1 py-0.5 bg-background text-muted-foreground text-[9px] rounded">
+                        <span className="ml-1.5 px-1 py-0.5 bg-[#0D1F33] text-[#8FAABE]/50 text-[9px] rounded">
                           {user.tag}
                         </span>
                       )}
@@ -258,26 +258,26 @@ export function UsersPage() {
                         {user.device_connected_at ? (
                           <>
                             {isOnline(user) ? (
-                              <Wifi size={12} className="text-green-500" />
+                              <Wifi size={12} className="text-[#98C379]" />
                             ) : (
-                              <WifiOff size={12} className="text-muted-foreground" />
+                              <WifiOff size={12} className="text-[#8FAABE]/50" />
                             )}
                             <span className={cn(
                               'text-[10px]',
-                              isOnline(user) ? 'text-green-600' : 'text-muted-foreground'
+                              isOnline(user) ? 'text-[#98C379]' : 'text-[#8FAABE]/50'
                             )}>
                               {isOnline(user) ? 'Online' : 'Offline'}
                             </span>
                           </>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground">Not connected</span>
+                          <span className="text-[10px] text-[#8FAABE]/50">Not connected</span>
                         )}
                       </div>
                     </td>
                     <td className="px-3 py-2">
                       <span className={cn(
                         'px-1.5 py-0.5 rounded text-[10px] font-medium',
-                        user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
+                        user.is_active ? 'bg-[#98C379]/10 text-[#98C379]' : 'bg-[#1A3755]/30 text-[#8FAABE]/50'
                       )}>
                         {user.is_active ? 'active' : 'inactive'}
                       </span>
@@ -287,7 +287,7 @@ export function UsersPage() {
                         {user.is_active ? (
                           <button
                             onClick={() => setDeactivateTarget(user)}
-                            className="text-[10px] text-foreground/80 hover:text-foreground font-medium"
+                            className="text-[10px] text-[#E8EDF2]/80 hover:text-[#E8EDF2] font-medium"
                           >
                             Deactivate
                           </button>
@@ -295,13 +295,13 @@ export function UsersPage() {
                           <>
                             <button
                               onClick={() => handleActivate(user)}
-                              className="text-[10px] text-primary hover:text-primary/80 font-medium"
+                              className="text-[10px] text-[#5B9BD5] hover:text-[#5B9BD5]/80 font-medium"
                             >
                               Activate
                             </button>
                             <button
                               onClick={() => { setDeleteTarget(user); setDeleteConfirmName(''); }}
-                              className="text-[10px] text-red-500 hover:text-red-700 font-medium"
+                              className="text-[10px] text-[#E06C75] hover:text-[#E06C75] font-medium"
                             >
                               Delete
                             </button>
@@ -318,8 +318,8 @@ export function UsersPage() {
 
         {/* Pagination footer */}
         {!loading && filteredUsers.length > 0 && (
-          <div className="px-3 py-2 border-t border-border bg-secondary flex justify-between items-center">
-            <p className="text-[10px] text-muted-foreground">
+          <div className="px-3 py-2 border-t border-[#1E3F5E]/60 bg-[#1A3755]/50 flex justify-between items-center">
+            <p className="text-[10px] text-[#8FAABE]/50">
               Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
             </p>
             {totalPages > 1 && (
@@ -327,17 +327,17 @@ export function UsersPage() {
                 <button
                   disabled={safePage === 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#E8EDF2]/80 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
-                <span className="text-[10px] text-foreground/80">
+                <span className="text-[10px] text-[#E8EDF2]/80">
                   Page {safePage} of {totalPages}
                 </span>
                 <button
                   disabled={safePage === totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#E8EDF2]/80 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -350,10 +350,10 @@ export function UsersPage() {
       {/* Create Collector Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg max-w-md w-full p-5 shadow-lg">
-            <h3 className="text-sm font-bold text-foreground mb-4">New Collector</h3>
+          <div className="bg-[#162F4D] rounded-lg max-w-md w-full p-5 shadow-lg border border-[#1E3F5E]/60">
+            <h3 className="text-sm font-bold text-[#E8EDF2] mb-4">New Collector</h3>
             {formError && (
-              <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-3 text-red-600 text-xs">
+              <div className="bg-[#E06C75]/10 border border-[#E06C75]/30 rounded-md p-3 mb-3 text-[#E06C75] text-xs">
                 {formError}
               </div>
             )}
@@ -379,17 +379,17 @@ export function UsersPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-border">
+            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-[#1E3F5E]/60">
               <button
                 onClick={() => { setShowCreateModal(false); resetForm(); }}
-                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
+                className="bg-[#162F4D] border border-[#1E3F5E]/60 text-[#E8EDF2]/80 text-xs px-3 py-1.5 rounded-md hover:bg-[#1A3755]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateUser}
                 disabled={formLoading}
-                className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
+                className="bg-[#5B9BD5] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#4A8BC4] disabled:opacity-60"
               >
                 {formLoading ? 'Creating...' : 'Create Collector'}
               </button>
@@ -401,22 +401,22 @@ export function UsersPage() {
       {/* Deactivate confirmation */}
       {deactivateTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg max-w-sm w-full p-5 shadow-lg">
-            <h3 className="text-sm font-bold text-foreground mb-2">Deactivate User</h3>
-            <p className="text-xs text-foreground/80 mb-4">
+          <div className="bg-[#162F4D] rounded-lg max-w-sm w-full p-5 shadow-lg border border-[#1E3F5E]/60">
+            <h3 className="text-sm font-bold text-[#E8EDF2] mb-2">Deactivate User</h3>
+            <p className="text-xs text-[#E8EDF2]/80 mb-4">
               Are you sure you want to deactivate "{deactivateTarget.nickname || deactivateTarget.full_name}"?
               They will be unable to sign in to the mobile app.
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeactivateTarget(null)}
-                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
+                className="bg-[#162F4D] border border-[#1E3F5E]/60 text-[#E8EDF2]/80 text-xs px-3 py-1.5 rounded-md hover:bg-[#1A3755]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeactivate}
-                className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-600"
+                className="bg-[#E06C75] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#E06C75]/80"
               >
                 Deactivate
               </button>
@@ -428,9 +428,9 @@ export function UsersPage() {
       {/* Delete confirmation with name entry */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-card rounded-lg max-w-sm w-full p-5 shadow-lg">
-            <h3 className="text-sm font-bold text-foreground mb-2">Delete Collector</h3>
-            <p className="text-xs text-foreground/80 mb-3">
+          <div className="bg-[#162F4D] rounded-lg max-w-sm w-full p-5 shadow-lg border border-[#1E3F5E]/60">
+            <h3 className="text-sm font-bold text-[#E8EDF2] mb-2">Delete Collector</h3>
+            <p className="text-xs text-[#E8EDF2]/80 mb-3">
               This action is permanent. To confirm, type the collector's name:{' '}
               <strong>{deleteTarget.nickname || deleteTarget.full_name}</strong>
             </p>
@@ -444,14 +444,14 @@ export function UsersPage() {
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteConfirmName(''); }}
-                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
+                className="bg-[#162F4D] border border-[#1E3F5E]/60 text-[#E8EDF2]/80 text-xs px-3 py-1.5 rounded-md hover:bg-[#1A3755]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDelete}
                 disabled={deleteConfirmName !== (deleteTarget.nickname || deleteTarget.full_name)}
-                className="bg-red-500 text-white text-xs px-3 py-1.5 rounded-md hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="bg-[#E06C75] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#E06C75]/80 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Delete Permanently
               </button>

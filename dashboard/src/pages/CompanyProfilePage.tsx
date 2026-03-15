@@ -20,7 +20,7 @@ const fields: FieldDef[] = [
 
 type FieldKey = FieldDef['key'];
 
-const inputCls = 'border border-input rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring flex-1';
+const inputCls = 'border border-[#1E3F5E]/60 rounded-md px-2.5 py-1.5 text-xs bg-[#0D1F33] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] flex-1';
 
 export function CompanyProfilePage() {
   const { profile, loading, error, updateProfile } = useCompanyProfile();
@@ -54,25 +54,25 @@ export function CompanyProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-3 bg-background min-h-full flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={24} />
+      <div className="p-3 bg-[#0D1F33] min-h-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#5B9BD5]" size={24} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-3 bg-background min-h-full">
-        <div className="bg-card border border-border rounded-lg p-6 text-center">
-          <p className="text-xs text-red-500">{error}</p>
+      <div className="p-3 bg-[#0D1F33] min-h-full">
+        <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg p-6 text-center">
+          <p className="text-xs text-[#E06C75]">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-3 bg-background min-h-full">
-      <div className="bg-card border border-border rounded-lg overflow-hidden max-w-2xl">
+    <div className="p-3 bg-[#0D1F33] min-h-full">
+      <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden max-w-2xl">
         {fields.map((field, idx) => {
           const isEditing = editingField === field.key;
           const value = (profile?.[field.key] ?? null) as string | null;
@@ -80,11 +80,11 @@ export function CompanyProfilePage() {
           return (
             <div
               key={field.key}
-              className={`px-4 py-3 ${idx < fields.length - 1 ? 'border-b border-muted' : ''}`}
+              className={`px-4 py-3 ${idx < fields.length - 1 ? 'border-b border-[#1E3F5E]/30' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
+                  <p className="text-[10px] font-semibold text-[#8FAABE]/50 uppercase tracking-wider mb-1.5">
                     {field.label}
                   </p>
                   {isEditing ? (
@@ -114,19 +114,19 @@ export function CompanyProfilePage() {
                       <button
                         onClick={() => saveField(field.key)}
                         disabled={saving}
-                        className="p-1.5 text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                        className="p-1.5 text-[#98C379] hover:bg-[#98C379]/10 rounded-md transition-colors"
                       >
                         {saving ? <Loader2 className="animate-spin" size={13} /> : <Check size={13} />}
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="p-1.5 text-muted-foreground hover:bg-muted rounded-md transition-colors"
+                        className="p-1.5 text-[#8FAABE]/50 hover:text-[#E8EDF2] hover:bg-[#1A3755] rounded-md transition-colors"
                       >
                         <X size={13} />
                       </button>
                     </div>
                   ) : (
-                    <p className={`text-xs ${value ? 'text-foreground' : 'text-muted-foreground italic'}`}>
+                    <p className={`text-xs ${value ? 'text-[#E8EDF2]' : 'text-[#8FAABE]/40 italic'}`}>
                       {value || 'Not set'}
                     </p>
                   )}
@@ -134,7 +134,7 @@ export function CompanyProfilePage() {
                 {!isEditing && (
                   <button
                     onClick={() => startEdit(field.key)}
-                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded-md transition-colors mt-4"
+                    className="p-1.5 text-[#8FAABE]/40 hover:text-[#5B9BD5] hover:bg-[#1A3755] rounded-md transition-colors mt-4"
                   >
                     <Pencil size={13} />
                   </button>
@@ -146,7 +146,7 @@ export function CompanyProfilePage() {
       </div>
 
       {profile?.updated_at && (
-        <p className="text-[10px] text-muted-foreground mt-3 max-w-2xl text-right">
+        <p className="text-[10px] text-[#8FAABE]/40 mt-3 max-w-2xl text-right">
           Last updated: {new Date(profile.updated_at).toLocaleString()}
         </p>
       )}

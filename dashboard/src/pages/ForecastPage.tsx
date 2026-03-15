@@ -137,11 +137,11 @@ export function ForecastPage() {
 
   function SortIcon({ column }: { column: SortKey }) {
     if (sortKey !== column)
-      return <ChevronDown size={12} className="text-muted-foreground/50 ml-0.5 inline" />;
+      return <ChevronDown size={12} className="text-[#8FAABE]/30 ml-0.5 inline" />;
     return sortAsc ? (
-      <ChevronUp size={12} className="text-primary ml-0.5 inline" />
+      <ChevronUp size={12} className="text-[#5B9BD5] ml-0.5 inline" />
     ) : (
-      <ChevronDown size={12} className="text-primary ml-0.5 inline" />
+      <ChevronDown size={12} className="text-[#5B9BD5] ml-0.5 inline" />
     );
   }
 
@@ -155,67 +155,67 @@ export function ForecastPage() {
   }
 
   return (
-    <div className="p-3 bg-background min-h-full">
+    <div className="p-3 bg-[#0D1F33] min-h-full">
       {/* Search + info */}
       <div className="flex items-center gap-3 mb-4 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8FAABE]/40"
           />
           <input
             type="text"
             placeholder="Search products..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-[#1E3F5E]/60 rounded-lg bg-[#162F4D] text-[#E8EDF2] placeholder-[#8FAABE]/40 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]"
           />
         </div>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[10px] text-[#8FAABE]/50">
           {FORECAST_DAYS}-day forecast &middot; {HISTORY_WEEKS}-week weighted avg
         </p>
       </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="bg-card border border-border rounded-lg p-3">
+        <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg p-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-              <Package size={14} className="text-primary" />
+            <div className="w-7 h-7 rounded-lg bg-[#0D1F33] flex items-center justify-center">
+              <Package size={14} className="text-[#5B9BD5]" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Products</p>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-[10px] text-[#8FAABE]/50 uppercase tracking-wide">Products</p>
+              <p className="text-sm font-bold text-[#E8EDF2]">
                 {summary.withData}{' '}
-                <span className="text-[10px] font-normal text-muted-foreground">
+                <span className="text-[10px] font-normal text-[#8FAABE]/50">
                   / {summary.total}
                 </span>
               </p>
             </div>
           </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-3">
+        <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg p-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-              <TrendingUp size={14} className="text-primary" />
+            <div className="w-7 h-7 rounded-lg bg-[#0D1F33] flex items-center justify-center">
+              <TrendingUp size={14} className="text-[#5B9BD5]" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Forecast</p>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-[10px] text-[#8FAABE]/50 uppercase tracking-wide">Total Forecast</p>
+              <p className="text-sm font-bold text-[#E8EDF2]">
                 {summary.totalUnits.toLocaleString()}{' '}
-                <span className="text-[10px] font-normal text-muted-foreground">units</span>
+                <span className="text-[10px] font-normal text-[#8FAABE]/50">units</span>
               </p>
             </div>
           </div>
         </div>
-        <div className="bg-card border border-border rounded-lg p-3">
+        <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg p-3">
           <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
-              <Box size={14} className="text-primary" />
+            <div className="w-7 h-7 rounded-lg bg-[#0D1F33] flex items-center justify-center">
+              <Box size={14} className="text-[#5B9BD5]" />
             </div>
             <div>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total Cases</p>
-              <p className="text-sm font-bold text-foreground">
+              <p className="text-[10px] text-[#8FAABE]/50 uppercase tracking-wide">Total Cases</p>
+              <p className="text-sm font-bold text-[#E8EDF2]">
                 {summary.totalCases.toLocaleString()}
               </p>
             </div>
@@ -224,28 +224,28 @@ export function ForecastPage() {
       </div>
 
       {/* Forecast Table */}
-      <div className="bg-card border border-border rounded-lg overflow-hidden">
+      <div className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-4 space-y-2">
             {[...Array(10)].map((_, i) => (
               <div key={i} className="flex gap-3 animate-pulse py-2">
-                <div className="h-3 bg-gray-200 rounded flex-1" />
-                <div className="h-3 bg-gray-200 rounded w-12" />
-                <div className="h-3 bg-gray-200 rounded w-12" />
-                <div className="h-3 bg-gray-200 rounded w-16" />
-                <div className="h-3 bg-gray-200 rounded w-12" />
-                <div className="h-3 bg-gray-200 rounded w-12" />
+                <div className="h-3 bg-[#1A3755] rounded flex-1" />
+                <div className="h-3 bg-[#1A3755] rounded w-12" />
+                <div className="h-3 bg-[#1A3755] rounded w-12" />
+                <div className="h-3 bg-[#1A3755] rounded w-16" />
+                <div className="h-3 bg-[#1A3755] rounded w-12" />
+                <div className="h-3 bg-[#1A3755] rounded w-12" />
               </div>
             ))}
           </div>
         ) : rows.length === 0 ? (
           <div className="py-12 text-center">
-            <Package size={32} className="mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-xs text-muted-foreground">
+            <Package size={32} className="mx-auto text-[#8FAABE]/30 mb-2" />
+            <p className="text-xs text-[#8FAABE]/50">
               {search ? 'No products match your search' : 'No forecast data available'}
             </p>
             {!search && (
-              <p className="text-[10px] text-muted-foreground mt-1">
+              <p className="text-[10px] text-[#8FAABE]/30 mt-1">
                 Run the import script to load historical sales data
               </p>
             )}
@@ -254,35 +254,35 @@ export function ForecastPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-secondary">
+                <tr className="border-b border-[#1E3F5E]/60 bg-[#1A3755]/50">
                   <th
-                    className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                    className="px-3 py-2 text-left text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('product_name')}
                   >
                     Product <SortIcon column="product_name" />
                   </th>
                   <th
-                    className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                    className="px-3 py-2 text-right text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('avg_daily_sales')}
                   >
                     Avg/Day <SortIcon column="avg_daily_sales" />
                   </th>
                   <th
-                    className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                    className="px-3 py-2 text-right text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('forecast_units')}
                   >
                     Forecast ({FORECAST_DAYS}d) <SortIcon column="forecast_units" />
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide whitespace-nowrap">
                     Cases
                   </th>
                   <th
-                    className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
+                    className="px-3 py-2 text-right text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide cursor-pointer select-none whitespace-nowrap"
                     onClick={() => toggleSort('actual_units')}
                   >
                     Last {FORECAST_DAYS}d <SortIcon column="actual_units" />
                   </th>
-                  <th className="px-3 py-2 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap">
+                  <th className="px-3 py-2 text-center text-[10px] font-medium text-[#8FAABE]/60 uppercase tracking-wide whitespace-nowrap">
                     Trend
                   </th>
                 </tr>
@@ -304,47 +304,47 @@ export function ForecastPage() {
                   return (
                     <tr
                       key={row.product_id}
-                      className="border-b border-muted hover:bg-secondary"
+                      className="border-b border-[#1E3F5E]/30 hover:bg-[#1A3755]/40 transition-colors"
                     >
                       <td className="px-3 py-2">
                         <p
-                          className="text-xs font-medium text-foreground truncate max-w-[220px]"
+                          className="text-xs font-medium text-[#E8EDF2] truncate max-w-[220px]"
                           title={row.product_name}
                         >
                           {row.product_name}
                         </p>
                       </td>
-                      <td className="px-3 py-2 text-right text-xs text-foreground/80 tabular-nums">
+                      <td className="px-3 py-2 text-right text-xs text-[#E8EDF2]/80 tabular-nums">
                         {row.avg_daily_sales.toFixed(1)}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs font-semibold text-foreground tabular-nums">
+                      <td className="px-3 py-2 text-right text-xs font-semibold text-[#E8EDF2] tabular-nums">
                         {row.forecast_units}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs text-foreground/80 tabular-nums whitespace-nowrap">
+                      <td className="px-3 py-2 text-right text-xs text-[#E8EDF2]/80 tabular-nums whitespace-nowrap">
                         {formatCases(
                           row.forecast_cases,
                           row.forecast_remainder,
                           row.carton_size
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right text-xs text-foreground/80 tabular-nums">
+                      <td className="px-3 py-2 text-right text-xs text-[#E8EDF2]/80 tabular-nums">
                         {row.actual_units}
                       </td>
                       <td className="px-3 py-2 text-center">
                         {row.forecast_units === 0 && row.actual_units === 0 ? (
-                          <Minus size={12} className="text-muted-foreground/50 inline-block" />
+                          <Minus size={12} className="text-[#8FAABE]/30 inline-block" />
                         ) : up ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-green-600">
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[#98C379]">
                             <TrendingUp size={11} />
                             +{pct.toFixed(0)}%
                           </span>
                         ) : down ? (
-                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-red-500">
+                          <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-[#E06C75]">
                             <TrendingDown size={11} />
                             {pct.toFixed(0)}%
                           </span>
                         ) : (
-                          <Minus size={12} className="text-muted-foreground inline-block" />
+                          <Minus size={12} className="text-[#8FAABE]/50 inline-block" />
                         )}
                       </td>
                     </tr>
@@ -362,8 +362,8 @@ export function ForecastPage() {
           const safePage = Math.min(page, totalPages);
           const startIdx = (safePage - 1) * PAGE_SIZE;
           return (
-            <div className="px-3 py-2 border-t border-border bg-secondary flex justify-between items-center">
-              <p className="text-[10px] text-muted-foreground">
+            <div className="px-3 py-2 border-t border-[#1E3F5E]/60 bg-[#1A3755]/50 flex justify-between items-center">
+              <p className="text-[10px] text-[#8FAABE]/50">
                 Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, rows.length)} of {rows.length} products
               </p>
               <div className="flex items-center gap-2">
@@ -372,23 +372,23 @@ export function ForecastPage() {
                     <button
                       disabled={safePage === 1}
                       onClick={() => setPage((p) => p - 1)}
-                      className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#8FAABE]/70 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Prev
                     </button>
-                    <span className="text-[10px] text-foreground/80">
+                    <span className="text-[10px] text-[#8FAABE]/70">
                       Page {safePage} of {totalPages}
                     </span>
                     <button
                       disabled={safePage === totalPages}
                       onClick={() => setPage((p) => p + 1)}
-                      className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="text-[10px] px-2 py-0.5 rounded border border-[#1E3F5E]/60 text-[#8FAABE]/70 hover:bg-[#162F4D] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       Next
                     </button>
                   </>
                 )}
-                <p className="text-[10px] text-muted-foreground ml-2">
+                <p className="text-[10px] text-[#8FAABE]/40 ml-2">
                   {HISTORY_WEEKS}-week weighted avg
                 </p>
               </div>

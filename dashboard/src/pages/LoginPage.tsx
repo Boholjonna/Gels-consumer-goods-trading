@@ -13,7 +13,6 @@ export function LoginPage() {
   const [errorType, setErrorType] = useState<'auth' | 'access' | 'general'>('general');
   const [loading, setLoading] = useState(false);
 
-  // If already authenticated as admin, redirect to dashboard
   if (!isLoading && isAuthenticated && user?.role === 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
@@ -57,13 +56,12 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-[#0A2040] via-[#0D2B52] to-[#1060C0]">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#0A2040] via-[#0D2B52] to-[#152D4A]">
       {/* Left Panel - Illustration */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative overflow-hidden">
-        {/* Decorative background shapes */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-20 -left-20 w-96 h-96 bg-primary rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary rounded-full blur-3xl" />
+          <div className="absolute -top-20 -left-20 w-96 h-96 bg-[#5B9BD5] rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-[#5B9BD5] rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 text-center max-w-md">
@@ -75,25 +73,25 @@ export function LoginPage() {
           <h2 className="text-2xl font-bold text-white mb-3">
             Admin Control Center
           </h2>
-          <p className="text-blue-200/70 text-sm leading-relaxed">
+          <p className="text-[#8FAABE]/70 text-sm leading-relaxed">
             Manage your point-of-sale operations, monitor orders, and oversee your team — all in one place.
           </p>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-background  lg:rounded-l-[2rem]">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-[#0D1F33] lg:rounded-l-[2rem]">
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
+            <div className="w-9 h-9 rounded-xl bg-[#5B9BD5] flex items-center justify-center shadow-lg shadow-[#5B9BD5]/25">
               <ShoppingCart size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground leading-tight">
+              <h1 className="text-lg font-bold text-[#E8EDF2] leading-tight">
                 POS Admin
               </h1>
-              <p className="text-[11px] text-muted-foreground leading-tight">
+              <p className="text-[11px] text-[#8FAABE]/50 leading-tight">
                 Order Management System
               </p>
             </div>
@@ -101,8 +99,8 @@ export function LoginPage() {
 
           {/* Heading */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
-            <p className="text-sm text-muted-foreground mt-1">
+            <h2 className="text-2xl font-bold text-[#E8EDF2]">Welcome back</h2>
+            <p className="text-sm text-[#8FAABE]/50 mt-1">
               Sign in to your admin dashboard
             </p>
           </div>
@@ -111,16 +109,16 @@ export function LoginPage() {
           {error && (
             <div className={`flex items-start gap-3 border rounded-xl p-3.5 mb-5 animate-[fadeIn_0.2s_ease-out] ${
               errorType === 'access'
-                ? 'bg-amber-50 border-amber-200'
-                : 'bg-red-50 border-red-200'
+                ? 'bg-[#E5C07B]/10 border-[#E5C07B]/30'
+                : 'bg-[#E06C75]/10 border-[#E06C75]/30'
             }`}>
               {errorType === 'access' ? (
-                <ShieldAlert size={18} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                <ShieldAlert size={18} className="text-[#E5C07B] mt-0.5 flex-shrink-0" />
               ) : (
-                <AlertCircle size={18} className="text-red-500 mt-0.5 flex-shrink-0" />
+                <AlertCircle size={18} className="text-[#E06C75] mt-0.5 flex-shrink-0" />
               )}
               <p className={`text-sm leading-snug ${
-                errorType === 'access' ? 'text-amber-700' : 'text-red-600'
+                errorType === 'access' ? 'text-[#E5C07B]' : 'text-[#E06C75]'
               }`}>{error}</p>
             </div>
           )}
@@ -128,23 +126,23 @@ export function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-sm font-medium text-[#E8EDF2] mb-1.5">
                 Email address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); setErrorType('general'); }}
-                className="w-full border border-input rounded-xl px-3.5 py-2.5 text-sm bg-card
-                  focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
-                  placeholder:text-muted-foreground transition-colors"
+                className="w-full border border-[#1E3F5E]/60 rounded-xl px-3.5 py-2.5 text-sm bg-[#162F4D] text-[#E8EDF2]
+                  focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/30 focus:border-[#5B9BD5]
+                  placeholder:text-[#8FAABE]/40 transition-colors"
                 placeholder="admin@example.com"
                 autoComplete="email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-sm font-medium text-[#E8EDF2] mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -152,16 +150,16 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); setErrorType('general'); }}
-                  className="w-full border border-input rounded-xl px-3.5 py-2.5 pr-10 text-sm bg-card
-                    focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
-                    placeholder:text-muted-foreground transition-colors"
+                  className="w-full border border-[#1E3F5E]/60 rounded-xl px-3.5 py-2.5 pr-10 text-sm bg-[#162F4D] text-[#E8EDF2]
+                    focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/30 focus:border-[#5B9BD5]
+                    placeholder:text-[#8FAABE]/40 transition-colors"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8FAABE]/40 hover:text-[#E8EDF2] transition-colors"
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -171,9 +169,9 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-primary text-white py-2.5 rounded-xl font-medium text-sm
-                hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60 disabled:cursor-not-allowed
-                shadow-lg shadow-primary/25 hover:shadow-primary/40
+              className="w-full bg-[#5B9BD5] text-white py-2.5 rounded-xl font-medium text-sm
+                hover:bg-[#4A8BC4] active:bg-[#3A7BB4] disabled:opacity-60 disabled:cursor-not-allowed
+                shadow-lg shadow-[#5B9BD5]/25 hover:shadow-[#5B9BD5]/40
                 transition-all duration-200 flex items-center justify-center gap-2"
             >
               {loading ? (
