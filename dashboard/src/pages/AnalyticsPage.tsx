@@ -1,7 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/formatters';
-import { format, startOfDay, subDays, endOfDay, eachDayOfInterval } from 'date-fns';
+import { format, startOfDay, subDays, endOfDay, eachDayOfInterval, differenceInDays } from 'date-fns';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp,
@@ -14,9 +14,10 @@ import {
   Users,
   Store,
   Package,
+  CalendarDays,
 } from 'lucide-react';
 
-type Period = 7 | 14 | 30 | 90;
+type Period = 7 | 14 | 30 | 90 | 'custom';
 
 interface DailyData {
   date: string;
@@ -252,23 +253,46 @@ export function AnalyticsPage() {
   const [productsPage, setProductsPage] = useState(1);
   const [dailyPage, setDailyPage] = useState(1);
 
-  const periods: Period[] = [7, 14, 30, 90];
+  // Custom date range state
+  const [customStart, setCustomStart] = useState(() => format(subDays(new Date(), 6), 'yyyy-MM-dd'));
+  const [customEnd, setCustomEnd] = useState(() => format(new Date(), 'yyyy-MM-dd'));
+  const [showCustomPicker, setShowCustomPicker] = useState(false);
+  const customPickerRef = useRef<HTMLDivElement>(null);
 
-  async function loadData(days: Period) {
+  // Close custom picker on outside click
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (customPickerRef.current && !customPickerRef.current.contains(e.target as Node)) {
+        setShowCustomPicker(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const presets: (7 | 14 | 30 | 90)[] = [7, 14, 30, 90];
+
+  // Compute the actual number of days for the current period
+  const effectiveDays = useMemo(() => {
+    if (period === 'custom') {
+      return Math.max(1, differenceInDays(new Date(customEnd), new Date(customStart)) + 1);
+    }
+    return period;
+  }, [period, customStart, customEnd]);
+
+  async function loadData(start: Date, end: Date, days: number) {
     setLoading(true);
-    const endDate = endOfDay(new Date());
-    const startDate = startOfDay(subDays(new Date(), days - 1));
-    const priorStart = startOfDay(subDays(new Date(), days * 2 - 1));
-    const priorEnd = startOfDay(subDays(new Date(), days));
+    const priorStart = startOfDay(subDays(start, days));
+    const priorEnd = startOfDay(subDays(start, 1));
 
     try {
       const [{ data: ordersData }, { data: priorData }, { data: itemsData }, { data: storesData }, { data: collectorsData }] = await Promise.all([
         supabase.from('orders').select('total_amount, created_at, status, collector_id, store_id')
-          .gte('created_at', startDate.toISOString()).lte('created_at', endDate.toISOString()),
+          .gte('created_at', start.toISOString()).lte('created_at', end.toISOString()),
         supabase.from('orders').select('total_amount, created_at, status, collector_id, store_id')
           .gte('created_at', priorStart.toISOString()).lte('created_at', priorEnd.toISOString()),
         supabase.from('order_items').select('product_name, quantity, line_total, orders!inner(created_at, status)')
-          .gte('orders.created_at', startDate.toISOString()),
+          .gte('orders.created_at', start.toISOString()),
         supabase.from('stores').select('id, name').eq('is_active', true).order('name'),
         supabase.from('profiles').select('id, full_name, nickname').eq('role', 'collector').eq('is_active', true).order('nickname'),
       ]);
@@ -284,18 +308,33 @@ export function AnalyticsPage() {
   }
 
   useEffect(() => {
-    loadData(period);
+    let start: Date;
+    let end: Date;
+    if (period === 'custom') {
+      start = startOfDay(new Date(customStart));
+      end = endOfDay(new Date(customEnd));
+    } else {
+      end = endOfDay(new Date());
+      start = startOfDay(subDays(new Date(), period - 1));
+    }
+    loadData(start, end, effectiveDays);
     setProductsPage(1);
     setDailyPage(1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   const activeOrders = useMemo(() => orders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [orders]);
   const priorActive = useMemo(() => priorOrders.filter((o) => ACTIVE_STATUSES.includes(o.status)), [priorOrders]);
 
   const { dailyData, totalRevenue, totalOrdersCount, avgOrderValue, revenueGrowth, ordersGrowth, completionRate, completionTrend } = useMemo(() => {
-    const startDate = startOfDay(subDays(new Date(), period - 1));
-    const allDays = eachDayOfInterval({ start: startDate, end: new Date() });
+    let startDate: Date;
+    if (period === 'custom') {
+      startDate = startOfDay(new Date(customStart));
+    } else {
+      startDate = startOfDay(subDays(new Date(), period - 1));
+    }
+    const endDate = period === 'custom' ? startOfDay(new Date(customEnd)) : new Date();
+    const allDays = eachDayOfInterval({ start: startDate, end: endDate });
 
     const dailyData: DailyData[] = allDays.map((day) => {
       const dayStr = format(day, 'yyyy-MM-dd');
@@ -325,7 +364,7 @@ export function AnalyticsPage() {
       completionRate,
       completionTrend: calcGrowth(completionRate, priorCompRate),
     };
-  }, [activeOrders, priorActive, orders, priorOrders, period]);
+  }, [activeOrders, priorActive, orders, priorOrders, period, customStart, customEnd, effectiveDays]);
 
   const topProducts = useMemo(() => {
     const productMap = new Map<string, { units: number; revenue: number }>();
@@ -372,19 +411,87 @@ export function AnalyticsPage() {
           <h1 className="text-sm font-bold text-[#E8EDF2]">Analytics</h1>
           <p className="text-[10px] text-[#8FAABE]/50">Business performance insights</p>
         </div>
-        <div className="flex bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
-          {periods.map((p) => (
-            <button key={p} onClick={() => setPeriod(p)} className={cn('px-3 py-1.5 text-xs font-medium transition-colors', period === p ? 'bg-[#5B9BD5] text-white' : 'text-[#E8EDF2]/80 hover:bg-[#1A3755]')}>
-              {p}d
+        <div className="flex items-center gap-2">
+          <div className="flex bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg overflow-hidden">
+            {presets.map((p) => (
+              <button key={p} onClick={() => { setPeriod(p); setShowCustomPicker(false); }} className={cn('px-3 py-1.5 text-xs font-medium transition-colors', period === p ? 'bg-[#5B9BD5] text-white' : 'text-[#E8EDF2]/80 hover:bg-[#1A3755]')}>
+                {p}d
+              </button>
+            ))}
+          </div>
+          <div className="relative" ref={customPickerRef}>
+            <button
+              onClick={() => { setShowCustomPicker(!showCustomPicker); if (period !== 'custom') setPeriod('custom'); }}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors',
+                period === 'custom'
+                  ? 'bg-[#5B9BD5] text-white border-[#5B9BD5]'
+                  : 'bg-[#162F4D] border-[#1E3F5E]/60 text-[#E8EDF2]/80 hover:bg-[#1A3755]'
+              )}
+            >
+              <CalendarDays size={12} />
+              {period === 'custom' ? `${format(new Date(customStart), 'MMM d')} — ${format(new Date(customEnd), 'MMM d')}` : 'Custom'}
             </button>
-          ))}
+            {showCustomPicker && (
+              <div className="absolute right-0 top-full mt-1.5 bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg shadow-xl p-3 z-50 w-64">
+                <p className="text-[10px] font-semibold text-[#8FAABE]/50 uppercase tracking-wider mb-2">Custom Range</p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="text-[10px] text-[#8FAABE]/50 mb-0.5 block">Start Date</label>
+                    <input
+                      type="date"
+                      value={customStart}
+                      max={customEnd}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="w-full border border-[#1E3F5E]/60 rounded-md px-2.5 py-1.5 text-xs bg-[#0D1F33] text-[#E8EDF2] focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] transition-colors [color-scheme:dark]"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-[#8FAABE]/50 mb-0.5 block">End Date</label>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      min={customStart}
+                      max={format(new Date(), 'yyyy-MM-dd')}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="w-full border border-[#1E3F5E]/60 rounded-md px-2.5 py-1.5 text-xs bg-[#0D1F33] text-[#E8EDF2] focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] transition-colors [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-1.5 mt-3">
+                  {[
+                    { label: 'This Week', start: startOfDay(subDays(new Date(), new Date().getDay())), end: new Date() },
+                    { label: 'This Month', start: new Date(new Date().getFullYear(), new Date().getMonth(), 1), end: new Date() },
+                    { label: 'Last Month', start: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1), end: new Date(new Date().getFullYear(), new Date().getMonth(), 0) },
+                  ].map((q) => (
+                    <button
+                      key={q.label}
+                      onClick={() => {
+                        setCustomStart(format(q.start, 'yyyy-MM-dd'));
+                        setCustomEnd(format(q.end, 'yyyy-MM-dd'));
+                      }}
+                      className="flex-1 text-[9px] text-[#8FAABE]/70 border border-[#1E3F5E]/60 rounded px-1.5 py-1 hover:bg-[#1A3755] transition-colors"
+                    >
+                      {q.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowCustomPicker(false)}
+                  className="w-full mt-2 bg-[#5B9BD5] text-white text-xs py-1.5 rounded-md hover:bg-[#4A8BC4] transition-colors"
+                >
+                  Apply
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-        <KpiCard title="Revenue" value={formatCurrency(totalRevenue)} icon={DollarSign} trend={loading ? undefined : revenueGrowth} sub={`last ${period} days`} />
-        <KpiCard title="Orders" value={totalOrdersCount} icon={ShoppingCart} trend={loading ? undefined : ordersGrowth} sub={`last ${period} days`} />
+        <KpiCard title="Revenue" value={formatCurrency(totalRevenue)} icon={DollarSign} trend={loading ? undefined : revenueGrowth} sub={period === 'custom' ? `${effectiveDays} days selected` : `last ${period} days`} />
+        <KpiCard title="Orders" value={totalOrdersCount} icon={ShoppingCart} trend={loading ? undefined : ordersGrowth} sub={period === 'custom' ? `${effectiveDays} days selected` : `last ${period} days`} />
         <KpiCard title="Avg Order Value" value={formatCurrency(avgOrderValue)} icon={BarChart2} sub="per order" />
         <KpiCard title="Completion Rate" value={`${completionRate.toFixed(1)}%`} icon={CheckCircle2} trend={loading ? undefined : completionTrend} sub="orders completed" />
       </div>
