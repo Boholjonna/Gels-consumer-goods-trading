@@ -19,6 +19,10 @@ import {
   Camera,
   Loader2,
   UserCircle,
+  Heart,
+  Pencil,
+  Check,
+  X,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useSidebar, SidebarMode } from '@/contexts/SidebarContext';
@@ -36,7 +40,7 @@ const itemCls = 'flex items-center justify-between px-4 py-3 border-b border-[#1
 const itemLabelCls = 'text-xs text-[#E8EDF2]';
 const itemDescCls = 'text-[10px] text-[#8FAABE]/50 mt-0.5';
 
-type SettingsTab = 'general' | 'data' | 'about';
+type SettingsTab = 'general' | 'data' | 'about' | 'credits';
 
 interface SystemInfo {
   orderCount: number;
@@ -132,6 +136,8 @@ export function SettingsPage() {
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
   const fileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
@@ -204,6 +210,20 @@ export function SettingsPage() {
     }
   }
 
+  async function handleNameUpdate(memberId: string) {
+    const trimmed = editName.trim();
+    if (!trimmed) { toast.error('Name cannot be empty'); return; }
+    try {
+      const { error } = await supabase.from('team_members').update({ name: trimmed }).eq('id', memberId);
+      if (error) throw error;
+      setTeamMembers((prev) => prev.map((m) => m.id === memberId ? { ...m, name: trimmed } : m));
+      setEditingId(null);
+      toast.success('Name updated');
+    } catch {
+      toast.error('Failed to update name');
+    }
+  }
+
   async function handleClearAll() {
     setShowClearConfirm(false);
     try {
@@ -251,6 +271,7 @@ export function SettingsPage() {
     { key: 'general', label: 'General', icon: SettingsIcon },
     { key: 'data', label: 'Data', icon: Database },
     { key: 'about', label: 'About', icon: Info },
+    { key: 'credits', label: 'Credits', icon: Heart },
   ];
 
   return (
@@ -437,9 +458,7 @@ export function SettingsPage() {
 
         {/* About Tab */}
         {activeTab === 'about' && (
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Left column — System Info + DB */}
-            <div className="flex-1 min-w-0 space-y-4">
+          <div className="space-y-4">
               <div className={sectionCls}>
                 <div className={sectionHeaderCls}>
                   <Info size={14} className="text-[#5B9BD5]" />
@@ -474,7 +493,7 @@ export function SettingsPage() {
                     <p className={sectionDescCls}>Record counts across all tables</p>
                   </div>
                 </div>
-                <div className="p-4 grid grid-cols-2 gap-3">
+                <div className="p-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { label: 'Orders', count: systemInfo.orderCount, icon: ShoppingCart },
                     { label: 'Products', count: systemInfo.productCount, icon: Package },
@@ -491,53 +510,79 @@ export function SettingsPage() {
                   ))}
                 </div>
               </div>
-            </div>
+          </div>
+        )}
 
-            {/* Right column — Team */}
-            <div className="lg:w-[320px] flex-shrink-0">
-              <div className={sectionCls}>
-                <div className={sectionHeaderCls}>
-                  <Users size={14} className="text-[#5B9BD5]" />
-                  <div>
-                    <p className={sectionTitleCls}>Researchers & Developers</p>
-                    <p className={sectionDescCls}>The team behind this system</p>
-                  </div>
+        {/* Credits Tab */}
+        {activeTab === 'credits' && (
+          <div className={sectionCls}>
+            <div className={sectionHeaderCls}>
+              <Heart size={14} className="text-[#E06C75]" />
+              <div>
+                <p className={sectionTitleCls}>Researchers & Developers</p>
+                <p className={sectionDescCls}>The team behind this system</p>
+              </div>
+            </div>
+            <div className="p-4">
+              {teamLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 size={18} className="animate-spin text-[#5B9BD5]" />
                 </div>
-                <div className="p-4 space-y-4">
-                  {teamLoading ? (
-                    <div className="flex justify-center py-6">
-                      <Loader2 size={18} className="animate-spin text-[#5B9BD5]" />
-                    </div>
-                  ) : teamMembers.length === 0 ? (
-                    <p className="text-[10px] text-[#8FAABE]/40 text-center py-6">
-                      No team members yet. Add them via the database.
-                    </p>
-                  ) : (
-                    teamMembers.map((member) => (
-                      <div key={member.id} className="flex items-center gap-3">
-                        <div className="relative flex-shrink-0 group">
+              ) : teamMembers.length === 0 ? (
+                <p className="text-[10px] text-[#8FAABE]/40 text-center py-8">
+                  No team members yet. Add them via the database.
+                </p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                  {teamMembers.map((member) => {
+                    const isEditing = editingId === member.id;
+                    return (
+                      <div key={member.id} className="bg-[#0D1F33] border border-[#1E3F5E]/30 rounded-lg p-4 flex flex-col items-center text-center relative group">
+                        {/* Edit toggle */}
+                        {!isEditing ? (
+                          <button
+                            onClick={() => { setEditingId(member.id); setEditName(member.name); }}
+                            className="absolute top-2 right-2 p-1 rounded-md text-[#8FAABE]/30 opacity-0 group-hover:opacity-100 hover:text-[#5B9BD5] hover:bg-[#1A3755] transition-all"
+                            title="Edit"
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="absolute top-2 right-2 p-1 rounded-md text-[#8FAABE]/40 hover:text-[#E06C75] hover:bg-[#E06C75]/10 transition-all"
+                            title="Cancel"
+                          >
+                            <X size={11} />
+                          </button>
+                        )}
+
+                        {/* Avatar */}
+                        <div className="relative flex-shrink-0 mb-3">
                           {member.avatar_url ? (
                             <img
                               src={member.avatar_url}
                               alt={member.name}
-                              className="w-12 h-12 rounded-full object-cover border-2 border-[#1E3F5E]/60"
+                              className="w-16 h-16 rounded-full object-cover border-2 border-[#1E3F5E]/60"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-full bg-[#0D1F33] border-2 border-[#1E3F5E]/60 flex items-center justify-center">
-                              <UserCircle size={24} className="text-[#8FAABE]/30" />
+                            <div className="w-16 h-16 rounded-full bg-[#162F4D] border-2 border-[#1E3F5E]/60 flex items-center justify-center">
+                              <UserCircle size={28} className="text-[#8FAABE]/30" />
                             </div>
                           )}
-                          <button
-                            onClick={() => fileInputRefs.current[member.id]?.click()}
-                            disabled={uploadingId === member.id}
-                            className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
-                          >
-                            {uploadingId === member.id ? (
-                              <Loader2 size={14} className="animate-spin text-white" />
-                            ) : (
-                              <Camera size={14} className="text-white" />
-                            )}
-                          </button>
+                          {isEditing && (
+                            <button
+                              onClick={() => fileInputRefs.current[member.id]?.click()}
+                              disabled={uploadingId === member.id}
+                              className="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center cursor-pointer transition-opacity"
+                            >
+                              {uploadingId === member.id ? (
+                                <Loader2 size={14} className="animate-spin text-white" />
+                              ) : (
+                                <Camera size={14} className="text-white" />
+                              )}
+                            </button>
+                          )}
                           <input
                             ref={(el) => { fileInputRefs.current[member.id] = el; }}
                             type="file"
@@ -550,15 +595,34 @@ export function SettingsPage() {
                             }}
                           />
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-semibold text-[#E8EDF2] truncate">{member.name}</p>
-                          <p className="text-[10px] text-[#8FAABE]/50 truncate">{member.role}</p>
-                        </div>
+
+                        {/* Name */}
+                        {isEditing ? (
+                          <div className="flex items-center gap-1 mb-1 w-full">
+                            <input
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleNameUpdate(member.id); if (e.key === 'Escape') setEditingId(null); }}
+                              className="flex-1 min-w-0 bg-[#162F4D] border border-[#1E3F5E]/60 rounded px-2 py-1 text-xs text-[#E8EDF2] text-center outline-none focus:border-[#5B9BD5]"
+                              autoFocus
+                            />
+                            <button
+                              onClick={() => handleNameUpdate(member.id)}
+                              className="p-1 rounded text-[#98C379] hover:bg-[#98C379]/10 transition-colors flex-shrink-0"
+                              title="Save"
+                            >
+                              <Check size={12} />
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-xs font-semibold text-[#E8EDF2] truncate w-full">{member.name}</p>
+                        )}
+                        <p className="text-[10px] text-[#8FAABE]/50 truncate w-full">{member.role}</p>
                       </div>
-                    ))
-                  )}
+                    );
+                  })}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         )}
