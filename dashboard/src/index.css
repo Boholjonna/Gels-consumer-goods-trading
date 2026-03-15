@@ -2,6 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    --background: 210 33% 96%;
+    --foreground: 211 60% 13%;
+    --card: 0 0% 100%;
+    --card-foreground: 211 60% 13%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 211 60% 13%;
+    --primary: 211 84% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 213 33% 97%;
+    --secondary-foreground: 211 60% 13%;
+    --muted: 210 33% 96%;
+    --muted-foreground: 211 20% 63%;
+    --accent: 213 33% 97%;
+    --accent-foreground: 211 60% 13%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 213 55% 87%;
+    --input: 213 40% 90%;
+    --ring: 211 84% 38%;
+    --radius: 0.375rem;
+
+    --success: 160 84% 39%;
+    --warning: 38 92% 50%;
+    --info: 217 91% 60%;
+
+    --sidebar-start: #0A2040;
+    --sidebar-end: #0D2B52;
+    --brand: #1060C0;
+  }
+
+  .dark {
+    --background: 222 20% 9%;
+    --foreground: 210 20% 93%;
+    --card: 222 20% 12%;
+    --card-foreground: 210 20% 93%;
+    --popover: 222 20% 12%;
+    --popover-foreground: 210 20% 93%;
+    --primary: 214 82% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 222 20% 17%;
+    --secondary-foreground: 210 20% 93%;
+    --muted: 222 20% 17%;
+    --muted-foreground: 210 15% 55%;
+    --accent: 214 82% 15%;
+    --accent-foreground: 210 20% 93%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 222 20% 22%;
+    --input: 222 20% 22%;
+    --ring: 214 82% 55%;
+
+    --success: 160 72% 42%;
+    --warning: 38 80% 50%;
+    --info: 217 80% 55%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Custom scrollbars */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
