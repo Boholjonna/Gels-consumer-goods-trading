@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { formatCurrency } from '@/lib/formatters';
 import { format, startOfDay, subDays, endOfDay, eachDayOfInterval } from 'date-fns';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import {
   TrendingUp,
   TrendingDown,
@@ -93,8 +93,8 @@ function LineChart({ data }: { data: DailyData[] }) {
     >
       <defs>
         <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#1a56db" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#1a56db" stopOpacity="0.01" />
+          <stop offset="0%" stopColor="#1060C0" stopOpacity="0.15" />
+          <stop offset="100%" stopColor="#1060C0" stopOpacity="0.01" />
         </linearGradient>
       </defs>
 
@@ -119,7 +119,7 @@ function LineChart({ data }: { data: DailyData[] }) {
         <path
           d={linePath}
           fill="none"
-          stroke="#1a56db"
+          stroke="#1060C0"
           strokeWidth="2"
           strokeLinejoin="round"
           strokeLinecap="round"
@@ -128,7 +128,7 @@ function LineChart({ data }: { data: DailyData[] }) {
 
       {points.map((p, i) => (
         <g key={i}>
-          <circle cx={p.x} cy={p.y} r="3" fill="#1a56db" stroke="white" strokeWidth="1.5" />
+          <circle cx={p.x} cy={p.y} r="3" fill="#1060C0" stroke="white" strokeWidth="1.5" />
           {i % xLabelStep === 0 && (
             <text
               x={p.x}
@@ -164,23 +164,23 @@ function KpiCard({
   const trendNegative = trend !== undefined && trend < 0;
 
   return (
-    <div className="bg-white border border-[#e2ecf9] rounded-lg p-4">
+    <div className="bg-card border border-border rounded-lg p-4">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <p className="text-[10px] text-[#8aa0b8] uppercase tracking-wide mb-1">{title}</p>
-          <p className="text-lg font-bold text-[#0d1f35]">{value}</p>
-          {sub && <p className="text-[10px] text-[#8aa0b8] mt-0.5">{sub}</p>}
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-1">{title}</p>
+          <p className="text-lg font-bold text-foreground">{value}</p>
+          {sub && <p className="text-[10px] text-muted-foreground mt-0.5">{sub}</p>}
         </div>
-        <div className="w-8 h-8 rounded-lg bg-[#dce8f5] flex items-center justify-center flex-shrink-0">
-          <Icon size={15} className="text-[#1a56db]" />
+        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+          <Icon size={15} className="text-primary" />
         </div>
       </div>
       {trend !== undefined && (
         <div
-          className={clsx('flex items-center gap-1 mt-2 text-[10px] font-medium', {
+          className={cn('flex items-center gap-1 mt-2 text-[10px] font-medium', {
             'text-green-600': trendPositive,
             'text-red-500': trendNegative,
-            'text-[#8aa0b8]': trend === 0,
+            'text-muted-foreground': trend === 0,
           })}
         >
           {trendPositive ? (
@@ -301,19 +301,19 @@ export function AnalyticsPage() {
   }, [orderItems]);
 
   return (
-    <div className="p-3 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-background min-h-full">
       {/* Period selector */}
       <div className="flex items-center justify-end mb-4">
-        <div className="flex bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
+        <div className="flex bg-card border border-border rounded-lg overflow-hidden">
           {periods.map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={clsx(
+              className={cn(
                 'px-3 py-1.5 text-xs font-medium transition-colors',
                 period === p
-                  ? 'bg-[#1a56db] text-white'
-                  : 'text-[#4b5e73] hover:bg-[#f0f4f8]'
+                  ? 'bg-primary text-white'
+                  : 'text-foreground/80 hover:bg-muted'
               )}
             >
               {p}d
@@ -342,10 +342,10 @@ export function AnalyticsPage() {
       </div>
 
       {/* Revenue Trend Chart */}
-      <div className="bg-white border border-[#e2ecf9] rounded-lg p-4 mb-4">
-        <p className="text-xs font-semibold text-[#0d1f35] mb-3">Revenue Trend</p>
+      <div className="bg-card border border-border rounded-lg p-4 mb-4">
+        <p className="text-xs font-semibold text-foreground mb-3">Revenue Trend</p>
         {loading ? (
-          <div className="h-[200px] bg-[#f8fafd] rounded animate-pulse" />
+          <div className="h-[200px] bg-secondary rounded animate-pulse" />
         ) : (
           <div className="h-[200px]">
             <LineChart data={dailyData} />
@@ -356,9 +356,9 @@ export function AnalyticsPage() {
       {/* Two-column layout: Top Products + Daily Revenue */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* Top Products */}
-        <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#e2ecf9]">
-            <p className="text-xs font-semibold text-[#0d1f35]">Top Products</p>
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-xs font-semibold text-foreground">Top Products</p>
           </div>
           {loading ? (
             <div className="p-4 space-y-2">
@@ -371,43 +371,43 @@ export function AnalyticsPage() {
             </div>
           ) : topProducts.length === 0 ? (
             <div className="py-10 text-center">
-              <p className="text-xs text-[#8aa0b8]">No order data for this period</p>
+              <p className="text-xs text-muted-foreground">No order data for this period</p>
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
-                  <th className="px-3 py-2 text-left text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                <tr className="border-b border-border bg-secondary">
+                  <th className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                     Product
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                     Units
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                     Revenue
                   </th>
-                  <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                  <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                     %
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.map((p, i) => (
-                  <tr key={i} className="border-b border-[#f0f4f8] hover:bg-[#f8fafd]">
-                    <td className="px-3 py-2 text-xs text-[#0d1f35] font-medium">{p.product_name}</td>
-                    <td className="px-3 py-2 text-xs text-[#4b5e73] text-right">{p.units}</td>
-                    <td className="px-3 py-2 text-xs text-[#0d1f35] font-medium text-right">
+                  <tr key={i} className="border-b border-muted hover:bg-secondary">
+                    <td className="px-3 py-2 text-xs text-foreground font-medium">{p.product_name}</td>
+                    <td className="px-3 py-2 text-xs text-foreground/80 text-right">{p.units}</td>
+                    <td className="px-3 py-2 text-xs text-foreground font-medium text-right">
                       {formatCurrency(p.revenue)}
                     </td>
                     <td className="px-3 py-2 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        <div className="w-12 bg-[#f0f4f8] rounded-full h-1.5">
+                        <div className="w-12 bg-background rounded-full h-1.5">
                           <div
-                            className="h-1.5 rounded-full bg-[#1a56db]"
+                            className="h-1.5 rounded-full bg-primary"
                             style={{ width: `${Math.min(p.pct, 100)}%` }}
                           />
                         </div>
-                        <span className="text-[10px] text-[#4b5e73] w-8 text-right">
+                        <span className="text-[10px] text-foreground/80 w-8 text-right">
                           {p.pct.toFixed(0)}%
                         </span>
                       </div>
@@ -420,9 +420,9 @@ export function AnalyticsPage() {
         </div>
 
         {/* Daily Revenue */}
-        <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
-          <div className="px-4 py-3 border-b border-[#e2ecf9]">
-            <p className="text-xs font-semibold text-[#0d1f35]">Daily Revenue</p>
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-4 py-3 border-b border-border">
+            <p className="text-xs font-semibold text-foreground">Daily Revenue</p>
           </div>
           {loading ? (
             <div className="p-4 space-y-2">
@@ -438,17 +438,17 @@ export function AnalyticsPage() {
             <div className="max-h-[400px] overflow-y-auto">
               <table className="w-full">
                 <thead className="sticky top-0">
-                  <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
-                    <th className="px-3 py-2 text-left text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                  <tr className="border-b border-border bg-secondary">
+                    <th className="px-3 py-2 text-left text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       Date
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       Orders
                     </th>
-                    <th className="px-3 py-2 text-right text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-right text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       Revenue
                     </th>
-                    <th className="px-3 py-2 text-center text-[10px] font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-center text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       Trend
                     </th>
                   </tr>
@@ -461,12 +461,12 @@ export function AnalyticsPage() {
                     const down = hasPrev && day.revenue < prevRevenue;
 
                     return (
-                      <tr key={day.date} className="border-b border-[#f0f4f8] hover:bg-[#f8fafd]">
-                        <td className="px-3 py-2 text-xs text-[#4b5e73]">
+                      <tr key={day.date} className="border-b border-muted hover:bg-secondary">
+                        <td className="px-3 py-2 text-xs text-foreground/80">
                           {format(new Date(day.date), 'MMM d, yyyy')}
                         </td>
-                        <td className="px-3 py-2 text-xs text-[#4b5e73] text-right">{day.orders}</td>
-                        <td className="px-3 py-2 text-xs font-semibold text-[#0d1f35] text-right">
+                        <td className="px-3 py-2 text-xs text-foreground/80 text-right">{day.orders}</td>
+                        <td className="px-3 py-2 text-xs font-semibold text-foreground text-right">
                           {formatCurrency(day.revenue)}
                         </td>
                         <td className="px-3 py-2 text-center">
@@ -475,7 +475,7 @@ export function AnalyticsPage() {
                           ) : down ? (
                             <TrendingDown size={13} className="text-red-400 inline-block" />
                           ) : (
-                            <Minus size={13} className="text-[#8aa0b8] inline-block" />
+                            <Minus size={13} className="text-muted-foreground inline-block" />
                           )}
                         </td>
                       </tr>

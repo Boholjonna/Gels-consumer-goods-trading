@@ -5,8 +5,8 @@ import { ArrowLeft } from 'lucide-react';
 import type { Product } from '@/types';
 import toast from 'react-hot-toast';
 
-const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] w-full';
-const labelCls = 'block text-xs font-medium text-[#4b5e73] mb-1';
+const inputCls = 'border border-input rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring w-full';
+const labelCls = 'block text-xs font-medium text-foreground/80 mb-1';
 
 function generateSku(name: string): string {
   const prefix = name.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3).padEnd(3, 'X');
@@ -108,8 +108,8 @@ export function ProductEditPage() {
 
   if (loading) {
     return (
-      <div className="p-4 bg-[#f0f4f8] min-h-full">
-        <div className="bg-white border border-[#e2ecf9] rounded-lg p-6 max-w-2xl animate-pulse">
+      <div className="p-4 bg-background min-h-full">
+        <div className="bg-card border border-border rounded-lg p-6 max-w-2xl animate-pulse">
           <div className="h-5 bg-gray-200 rounded w-32 mb-4" />
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -122,22 +122,22 @@ export function ProductEditPage() {
   }
 
   return (
-    <div className="p-4 bg-[#f0f4f8] min-h-full">
+    <div className="p-4 bg-background min-h-full">
       <div className="flex items-center gap-3 mb-3">
         <button
           onClick={() => navigate('/products')}
-          className="flex items-center gap-1 text-xs text-[#4b5e73] hover:text-[#0d1f35] transition-colors"
+          className="flex items-center gap-1 text-xs text-foreground/80 hover:text-foreground transition-colors"
         >
           <ArrowLeft size={14} />
           Products
         </button>
-        <div className="h-3 w-px bg-[#e2ecf9]" />
-        <p className="text-sm font-semibold text-[#0d1f35]">
+        <div className="h-3 w-px bg-border" />
+        <p className="text-sm font-semibold text-foreground">
           {isEditing ? `Edit: ${product?.name}` : 'New Product'}
         </p>
       </div>
 
-      <div className="bg-white border border-[#e2ecf9] rounded-lg p-5 max-w-2xl">
+      <div className="bg-card border border-border rounded-lg p-5 max-w-2xl">
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4 text-xs text-red-600">
             {error}
@@ -171,7 +171,7 @@ export function ProductEditPage() {
 
           {/* SKU */}
           <div>
-            <label className={labelCls}>SKU <span className="text-[#8aa0b8] font-normal">(auto-generated if blank)</span></label>
+            <label className={labelCls}>SKU <span className="text-muted-foreground font-normal">(auto-generated if blank)</span></label>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -183,7 +183,7 @@ export function ProductEditPage() {
               <button
                 type="button"
                 onClick={() => setSku(generateSku(name || 'PRD'))}
-                className="shrink-0 border border-[#dce8f5] text-[#4b5e73] text-xs px-2.5 py-1.5 rounded-md hover:bg-[#f0f4f8] transition-colors whitespace-nowrap"
+                className="shrink-0 border border-input text-foreground/80 text-xs px-2.5 py-1.5 rounded-md hover:bg-muted transition-colors whitespace-nowrap"
               >
                 Generate
               </button>
@@ -224,26 +224,26 @@ export function ProductEditPage() {
               id="is_active"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded border-[#dce8f5] text-[#1a56db] focus:ring-[#1a56db]"
+              className="rounded border-input text-primary focus:ring-ring"
             />
-            <label htmlFor="is_active" className="text-xs text-[#4b5e73] font-medium">
+            <label htmlFor="is_active" className="text-xs text-foreground/80 font-medium">
               Active (visible to collectors)
             </label>
           </div>
 
           {/* Actions */}
-          <div className="flex gap-2 pt-2 border-t border-[#e2ecf9]">
+          <div className="flex gap-2 pt-2 border-t border-border">
             <button
               type="submit"
               disabled={submitting}
-              className="bg-[#1a56db] text-white text-xs px-4 py-2 rounded-md hover:bg-[#1447c0] disabled:opacity-60 font-medium"
+              className="bg-primary text-white text-xs px-4 py-2 rounded-md hover:bg-primary/90 disabled:opacity-60 font-medium"
             >
               {submitting ? 'Saving...' : isEditing ? 'Update Product' : 'Create Product'}
             </button>
             <button
               type="button"
               onClick={() => navigate('/products')}
-              className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-4 py-2 rounded-md hover:bg-[#f0f4f8]"
+              className="bg-card border border-input text-foreground/80 text-xs px-4 py-2 rounded-md hover:bg-muted"
             >
               Cancel
             </button>

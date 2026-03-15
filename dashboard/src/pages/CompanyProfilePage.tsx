@@ -20,7 +20,7 @@ const fields: FieldDef[] = [
 
 type FieldKey = FieldDef['key'];
 
-const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] flex-1';
+const inputCls = 'border border-input rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring flex-1';
 
 export function CompanyProfilePage() {
   const { profile, loading, error, updateProfile } = useCompanyProfile();
@@ -54,16 +54,16 @@ export function CompanyProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-3 bg-[#f0f4f8] min-h-full flex items-center justify-center">
-        <Loader2 className="animate-spin text-[#1a56db]" size={24} />
+      <div className="p-3 bg-background min-h-full flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={24} />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-3 bg-[#f0f4f8] min-h-full">
-        <div className="bg-white border border-[#e2ecf9] rounded-lg p-6 text-center">
+      <div className="p-3 bg-background min-h-full">
+        <div className="bg-card border border-border rounded-lg p-6 text-center">
           <p className="text-xs text-red-500">{error}</p>
         </div>
       </div>
@@ -71,8 +71,8 @@ export function CompanyProfilePage() {
   }
 
   return (
-    <div className="p-3 bg-[#f0f4f8] min-h-full">
-      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden max-w-2xl">
+    <div className="p-3 bg-background min-h-full">
+      <div className="bg-card border border-border rounded-lg overflow-hidden max-w-2xl">
         {fields.map((field, idx) => {
           const isEditing = editingField === field.key;
           const value = (profile?.[field.key] ?? null) as string | null;
@@ -80,11 +80,11 @@ export function CompanyProfilePage() {
           return (
             <div
               key={field.key}
-              className={`px-4 py-3 ${idx < fields.length - 1 ? 'border-b border-[#f0f4f8]' : ''}`}
+              className={`px-4 py-3 ${idx < fields.length - 1 ? 'border-b border-muted' : ''}`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-semibold text-[#8aa0b8] uppercase tracking-wide mb-1.5">
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                     {field.label}
                   </p>
                   {isEditing ? (
@@ -120,13 +120,13 @@ export function CompanyProfilePage() {
                       </button>
                       <button
                         onClick={cancelEdit}
-                        className="p-1.5 text-[#8aa0b8] hover:bg-[#f0f4f8] rounded-md transition-colors"
+                        className="p-1.5 text-muted-foreground hover:bg-muted rounded-md transition-colors"
                       >
                         <X size={13} />
                       </button>
                     </div>
                   ) : (
-                    <p className={`text-xs ${value ? 'text-[#0d1f35]' : 'text-[#8aa0b8] italic'}`}>
+                    <p className={`text-xs ${value ? 'text-foreground' : 'text-muted-foreground italic'}`}>
                       {value || 'Not set'}
                     </p>
                   )}
@@ -134,7 +134,7 @@ export function CompanyProfilePage() {
                 {!isEditing && (
                   <button
                     onClick={() => startEdit(field.key)}
-                    className="p-1.5 text-[#8aa0b8] hover:text-[#1a56db] hover:bg-[#f0f4f8] rounded-md transition-colors mt-4"
+                    className="p-1.5 text-muted-foreground hover:text-primary hover:bg-muted rounded-md transition-colors mt-4"
                   >
                     <Pencil size={13} />
                   </button>
@@ -146,7 +146,7 @@ export function CompanyProfilePage() {
       </div>
 
       {profile?.updated_at && (
-        <p className="text-[10px] text-[#8aa0b8] mt-3 max-w-2xl text-right">
+        <p className="text-[10px] text-muted-foreground mt-3 max-w-2xl text-right">
           Last updated: {new Date(profile.updated_at).toLocaleString()}
         </p>
       )}

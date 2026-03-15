@@ -2,14 +2,14 @@ import { useState, useEffect, useMemo } from 'react';
 import { Plus, Wifi, WifiOff, Search } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { UserDetailModal } from '@/components/UserDetailModal';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import type { Profile, ActivationCode } from '@/types';
 import toast from 'react-hot-toast';
 
 type UserWithCode = Profile & { activation_code?: ActivationCode | null };
 
-const inputCls = 'border border-[#dce8f5] rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db] w-full';
-const labelCls = 'block text-xs font-medium text-[#4b5e73] mb-1';
+const inputCls = 'border border-input rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring w-full';
+const labelCls = 'block text-xs font-medium text-foreground/80 mb-1';
 const PAGE_SIZE = 20;
 
 export function UsersPage() {
@@ -174,31 +174,31 @@ export function UsersPage() {
   const startIdx = (safePage - 1) * PAGE_SIZE;
 
   return (
-    <div className="p-3 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-background min-h-full">
       <div className="flex items-center gap-2 mb-3 flex-wrap">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search
             size={14}
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8aa0b8]"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           />
           <input
             type="text"
             placeholder="Search by nickname, ID, or tag..."
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-3 py-2 text-xs border border-[#e2ecf9] rounded-lg bg-white focus:outline-none focus:ring-1 focus:ring-[#1a56db] focus:border-[#1a56db]"
+            className="w-full pl-9 pr-3 py-2 text-xs border border-border rounded-lg bg-card focus:outline-none focus:ring-1 focus:ring-ring focus:border-ring"
           />
         </div>
         <button
           onClick={() => { resetForm(); setShowCreateModal(true); }}
-          className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5"
+          className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 flex items-center gap-1.5"
         >
           <Plus size={13} />
           Add Collector
         </button>
       </div>
 
-      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {loading ? (
           <div className="p-4 space-y-2">
             {[...Array(5)].map((_, i) => (
@@ -211,13 +211,13 @@ export function UsersPage() {
           </div>
         ) : filteredUsers.length === 0 ? (
           <div className="py-16 text-center">
-            <p className="text-xs text-[#8aa0b8]">
+            <p className="text-xs text-muted-foreground">
               {search ? 'No collectors match your search' : 'No collectors found'}
             </p>
             {!search && (
               <button
                 onClick={() => { resetForm(); setShowCreateModal(true); }}
-                className="mt-2 text-xs text-[#1a56db] hover:text-[#1447c0] font-medium"
+                className="mt-2 text-xs text-primary hover:text-primary/80 font-medium"
               >
                 Add your first collector
               </button>
@@ -227,28 +227,28 @@ export function UsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">ID</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Nickname</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide hidden md:table-cell">Connected</th>
-                  <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Status</th>
-                  <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">Actions</th>
+                <tr className="border-b border-border bg-secondary">
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">ID</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Nickname</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Connected</th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                  <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedUsers.map((user) => (
                   <tr
                     key={user.id}
-                    className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] cursor-pointer transition-colors"
+                    className="border-b border-muted hover:bg-secondary cursor-pointer transition-colors"
                     onClick={() => handleRowClick(user)}
                   >
-                    <td className="px-3 py-2 font-mono text-[10px] text-[#8aa0b8]">
+                    <td className="px-3 py-2 font-mono text-[10px] text-muted-foreground">
                       {user.display_id || user.id.slice(0, 8)}
                     </td>
-                    <td className="px-3 py-2 text-xs font-medium text-[#0d1f35]">
+                    <td className="px-3 py-2 text-xs font-medium text-foreground">
                       {user.nickname || user.full_name}
                       {user.tag && (
-                        <span className="ml-1.5 px-1 py-0.5 bg-[#f0f4f8] text-[#8aa0b8] text-[9px] rounded">
+                        <span className="ml-1.5 px-1 py-0.5 bg-background text-muted-foreground text-[9px] rounded">
                           {user.tag}
                         </span>
                       )}
@@ -260,22 +260,22 @@ export function UsersPage() {
                             {isOnline(user) ? (
                               <Wifi size={12} className="text-green-500" />
                             ) : (
-                              <WifiOff size={12} className="text-[#8aa0b8]" />
+                              <WifiOff size={12} className="text-muted-foreground" />
                             )}
-                            <span className={clsx(
+                            <span className={cn(
                               'text-[10px]',
-                              isOnline(user) ? 'text-green-600' : 'text-[#8aa0b8]'
+                              isOnline(user) ? 'text-green-600' : 'text-muted-foreground'
                             )}>
                               {isOnline(user) ? 'Online' : 'Offline'}
                             </span>
                           </>
                         ) : (
-                          <span className="text-[10px] text-[#8aa0b8]">Not connected</span>
+                          <span className="text-[10px] text-muted-foreground">Not connected</span>
                         )}
                       </div>
                     </td>
                     <td className="px-3 py-2">
-                      <span className={clsx(
+                      <span className={cn(
                         'px-1.5 py-0.5 rounded text-[10px] font-medium',
                         user.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'
                       )}>
@@ -287,7 +287,7 @@ export function UsersPage() {
                         {user.is_active ? (
                           <button
                             onClick={() => setDeactivateTarget(user)}
-                            className="text-[10px] text-[#4b5e73] hover:text-[#0d1f35] font-medium"
+                            className="text-[10px] text-foreground/80 hover:text-foreground font-medium"
                           >
                             Deactivate
                           </button>
@@ -295,7 +295,7 @@ export function UsersPage() {
                           <>
                             <button
                               onClick={() => handleActivate(user)}
-                              className="text-[10px] text-[#1a56db] hover:text-[#1447c0] font-medium"
+                              className="text-[10px] text-primary hover:text-primary/80 font-medium"
                             >
                               Activate
                             </button>
@@ -318,8 +318,8 @@ export function UsersPage() {
 
         {/* Pagination footer */}
         {!loading && filteredUsers.length > 0 && (
-          <div className="px-3 py-2 border-t border-[#e2ecf9] bg-[#f8fafd] flex justify-between items-center">
-            <p className="text-[10px] text-[#8aa0b8]">
+          <div className="px-3 py-2 border-t border-border bg-secondary flex justify-between items-center">
+            <p className="text-[10px] text-muted-foreground">
               Showing {startIdx + 1}–{Math.min(startIdx + PAGE_SIZE, filteredUsers.length)} of {filteredUsers.length}
             </p>
             {totalPages > 1 && (
@@ -327,17 +327,17 @@ export function UsersPage() {
                 <button
                   disabled={safePage === 1}
                   onClick={() => setPage((p) => p - 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[#e2ecf9] text-[#4b5e73] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Prev
                 </button>
-                <span className="text-[10px] text-[#4b5e73]">
+                <span className="text-[10px] text-foreground/80">
                   Page {safePage} of {totalPages}
                 </span>
                 <button
                   disabled={safePage === totalPages}
                   onClick={() => setPage((p) => p + 1)}
-                  className="text-[10px] px-2 py-0.5 rounded border border-[#e2ecf9] text-[#4b5e73] hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="text-[10px] px-2 py-0.5 rounded border border-border text-foreground/80 hover:bg-card disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -350,8 +350,8 @@ export function UsersPage() {
       {/* Create Collector Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-[#0d1f35] mb-4">New Collector</h3>
+          <div className="bg-card rounded-lg max-w-md w-full p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-foreground mb-4">New Collector</h3>
             {formError && (
               <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-3 text-red-600 text-xs">
                 {formError}
@@ -379,17 +379,17 @@ export function UsersPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-[#e2ecf9]">
+            <div className="flex gap-2 justify-end mt-4 pt-4 border-t border-border">
               <button
                 onClick={() => { setShowCreateModal(false); resetForm(); }}
-                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
+                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateUser}
                 disabled={formLoading}
-                className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] disabled:opacity-60"
+                className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-60"
               >
                 {formLoading ? 'Creating...' : 'Create Collector'}
               </button>
@@ -401,16 +401,16 @@ export function UsersPage() {
       {/* Deactivate confirmation */}
       {deactivateTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-[#0d1f35] mb-2">Deactivate User</h3>
-            <p className="text-xs text-[#4b5e73] mb-4">
+          <div className="bg-card rounded-lg max-w-sm w-full p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-foreground mb-2">Deactivate User</h3>
+            <p className="text-xs text-foreground/80 mb-4">
               Are you sure you want to deactivate "{deactivateTarget.nickname || deactivateTarget.full_name}"?
               They will be unable to sign in to the mobile app.
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setDeactivateTarget(null)}
-                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
+                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
               >
                 Cancel
               </button>
@@ -428,9 +428,9 @@ export function UsersPage() {
       {/* Delete confirmation with name entry */}
       {deleteTarget && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-5 shadow-xl">
-            <h3 className="text-sm font-bold text-[#0d1f35] mb-2">Delete Collector</h3>
-            <p className="text-xs text-[#4b5e73] mb-3">
+          <div className="bg-card rounded-lg max-w-sm w-full p-5 shadow-lg">
+            <h3 className="text-sm font-bold text-foreground mb-2">Delete Collector</h3>
+            <p className="text-xs text-foreground/80 mb-3">
               This action is permanent. To confirm, type the collector's name:{' '}
               <strong>{deleteTarget.nickname || deleteTarget.full_name}</strong>
             </p>
@@ -444,7 +444,7 @@ export function UsersPage() {
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => { setDeleteTarget(null); setDeleteConfirmName(''); }}
-                className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8]"
+                className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted"
               >
                 Cancel
               </button>

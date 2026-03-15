@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Upload, Pencil, Trash2, Package, X } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { clsx } from 'clsx';
+import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
 import type { Product } from '@/types';
 import toast from 'react-hot-toast';
@@ -40,7 +40,7 @@ function StockBadge({ qty }: { qty: number }) {
       ? 'bg-amber-100 text-amber-700'
       : 'bg-green-100 text-green-700';
   return (
-    <span className={clsx('px-1.5 py-0.5 rounded text-[10px] font-medium', cls)}>
+    <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-medium', cls)}>
       {qty}
     </span>
   );
@@ -189,7 +189,7 @@ export function ProductsPage() {
   const isImporting = importState?.phase === 'importing';
 
   return (
-    <div className="p-3 bg-[#f0f4f8] min-h-full">
+    <div className="p-3 bg-background min-h-full">
       {/* Header row */}
       <div className="flex items-center justify-end mb-3 gap-2 flex-wrap">
         <div className="flex items-center gap-2">
@@ -204,14 +204,14 @@ export function ProductsPage() {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isImporting}
-            className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8] flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted flex items-center gap-1.5 transition-colors disabled:opacity-50"
           >
             <Upload size={13} />
             {isImporting ? 'Importing...' : 'Import CSV'}
           </button>
           <button
             onClick={() => navigate('/products/new')}
-            className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] flex items-center gap-1.5 transition-colors"
+            className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 flex items-center gap-1.5 transition-colors"
           >
             <Plus size={13} />
             Add Product
@@ -220,27 +220,27 @@ export function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-[#e2ecf9] rounded-lg p-2 mb-3 flex gap-2 flex-wrap">
+      <div className="bg-card border border-border rounded-lg p-2 mb-3 flex gap-2 flex-wrap">
         <div className="relative flex-1 min-w-[160px]">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#8aa0b8]" />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search products..."
-            className="w-full pl-7 pr-3 border border-[#dce8f5] rounded-md py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+            className="w-full pl-7 pr-3 border border-input rounded-md py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-ring"
           />
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-[#e2ecf9] rounded-lg overflow-hidden">
+      <div className="bg-card border border-border rounded-lg overflow-hidden">
         {error ? (
           <div className="p-8 text-center">
             <p className="text-xs text-red-500 mb-2">{error}</p>
             <button
               onClick={() => fetchProducts({ page, search: search || undefined })}
-              className="text-xs text-[#1a56db] font-medium"
+              className="text-xs text-primary font-medium"
             >
               Retry
             </button>
@@ -257,11 +257,11 @@ export function ProductsPage() {
           </div>
         ) : products.length === 0 ? (
           <div className="py-16 text-center">
-            <Package size={24} className="text-[#8aa0b8] mx-auto mb-2" />
-            <p className="text-xs text-[#8aa0b8]">No products found</p>
+            <Package size={24} className="text-muted-foreground mx-auto mb-2" />
+            <p className="text-xs text-muted-foreground">No products found</p>
             <button
               onClick={() => navigate('/products/new')}
-              className="mt-2 text-xs text-[#1a56db] hover:text-[#1447c0] font-medium"
+              className="mt-2 text-xs text-primary hover:text-primary/80 font-medium"
             >
               Add your first product
             </button>
@@ -271,23 +271,23 @@ export function ProductsPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-[#e2ecf9] bg-[#f8fafd]">
-                    <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                  <tr className="border-b border-border bg-secondary">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       SKU
                     </th>
-                    <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Name
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Price
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Stock
                     </th>
-                    <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Status
                     </th>
-                    <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                    <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">
                       Actions
                     </th>
                   </tr>
@@ -296,15 +296,15 @@ export function ProductsPage() {
                   {products.map((product) => (
                     <tr
                       key={product.id}
-                      className="border-b border-[#f0f4f8] hover:bg-[#f8fafd] transition-colors"
+                      className="border-b border-muted hover:bg-secondary transition-colors"
                     >
-                      <td className="px-3 py-2 text-[10px] font-mono text-[#8aa0b8]">
+                      <td className="px-3 py-2 text-[10px] font-mono text-muted-foreground">
                         {product.sku || '—'}
                       </td>
                       <td className="px-3 py-2">
-                        <p className="text-xs text-[#0d1f35] font-medium">{product.name}</p>
+                        <p className="text-xs text-foreground font-medium">{product.name}</p>
                       </td>
-                      <td className="px-3 py-2 text-xs font-semibold text-[#0d1f35] text-right">
+                      <td className="px-3 py-2 text-xs font-semibold text-foreground text-right">
                         {formatCurrency(product.price)}
                       </td>
                       <td className="px-3 py-2 text-center">
@@ -312,7 +312,7 @@ export function ProductsPage() {
                       </td>
                       <td className="px-3 py-2 text-center">
                         <span
-                          className={clsx(
+                          className={cn(
                             'px-1.5 py-0.5 rounded text-[10px] font-medium',
                             product.is_active
                               ? 'bg-emerald-100 text-emerald-700'
@@ -326,14 +326,14 @@ export function ProductsPage() {
                         <div className="flex justify-end gap-2">
                           <button
                             onClick={() => navigate(`/products/${product.id}/edit`)}
-                            className="text-[#8aa0b8] hover:text-[#1a56db] transition-colors"
+                            className="text-muted-foreground hover:text-primary transition-colors"
                             title="Edit product"
                           >
                             <Pencil size={13} />
                           </button>
                           <button
                             onClick={() => setDeleteTarget(product)}
-                            className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                            className="text-muted-foreground hover:text-red-500 transition-colors"
                             title="Delete product"
                           >
                             <Trash2 size={13} />
@@ -347,13 +347,13 @@ export function ProductsPage() {
             </div>
 
             {/* Pagination */}
-            <div className="flex items-center justify-between px-3 py-2 border-t border-[#e2ecf9] text-xs text-[#8aa0b8]">
+            <div className="flex items-center justify-between px-3 py-2 border-t border-border text-xs text-muted-foreground">
               <span>{total} products</span>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => goToPage(page - 1)}
                   disabled={page === 1}
-                  className="px-2 py-1 rounded border border-[#dce8f5] hover:bg-[#f0f4f8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-2 py-1 rounded border border-input hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   ← Prev
                 </button>
@@ -363,7 +363,7 @@ export function ProductsPage() {
                 <button
                   onClick={() => goToPage(page + 1)}
                   disabled={page >= totalPages}
-                  className="px-2 py-1 rounded border border-[#dce8f5] hover:bg-[#f0f4f8] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  className="px-2 py-1 rounded border border-input hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                 >
                   Next →
                 </button>
@@ -375,31 +375,31 @@ export function ProductsPage() {
 
       {/* CSV Import Preview Modal */}
       {importState !== null && (
-        <div className="fixed inset-0 bg-white/90 flex items-center justify-center z-50 p-4">
-          <div className="bg-white border border-[#e2ecf9] rounded-xl shadow-xl w-full max-w-2xl">
+        <div className="fixed inset-0 bg-card/90 flex items-center justify-center z-50 p-4">
+          <div className="bg-card border border-border rounded-lg shadow-lg w-full max-w-2xl">
             {importState.phase === 'importing' ? (
               <div className="p-10 text-center">
-                <p className="text-sm font-medium text-[#0d1f35]">Importing products...</p>
-                <p className="text-xs text-[#8aa0b8] mt-1">Please wait</p>
+                <p className="text-sm font-medium text-foreground">Importing products...</p>
+                <p className="text-xs text-muted-foreground mt-1">Please wait</p>
               </div>
             ) : (
               <>
                 {/* Modal header */}
-                <div className="px-5 pt-5 pb-3 border-b border-[#e2ecf9]">
-                  <h2 className="text-sm font-bold text-[#0d1f35]">Import Preview</h2>
-                  <p className="text-xs text-[#8aa0b8] mt-0.5">
+                <div className="px-5 pt-5 pb-3 border-b border-border">
+                  <h2 className="text-sm font-bold text-foreground">Import Preview</h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {previewRows.length} products ready to import
                   </p>
                 </div>
 
                 {/* Replace toggle */}
-                <div className="px-5 py-3 border-b border-[#e2ecf9]">
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[#4b5e73]">
+                <div className="px-5 py-3 border-b border-border">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs text-foreground/80">
                     <input
                       type="checkbox"
                       checked={replaceExisting}
                       onChange={(e) => setReplaceExisting(e.target.checked)}
-                      className="rounded border-[#dce8f5]"
+                      className="rounded border-input"
                     />
                     Replace existing products
                   </label>
@@ -409,17 +409,17 @@ export function ProductsPage() {
                 <div className="max-h-72 overflow-y-auto">
                   <table className="w-full">
                     <thead className="sticky top-0">
-                      <tr className="bg-[#f8fafd] border-b border-[#e2ecf9]">
-                        <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                      <tr className="bg-secondary border-b border-border">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           Name
                         </th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           SKU
                         </th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                        <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           Price
                         </th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-[#8aa0b8] uppercase tracking-wide">
+                        <th className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wide">
                           Stock
                         </th>
                         <th className="px-3 py-2 w-8" />
@@ -427,13 +427,13 @@ export function ProductsPage() {
                     </thead>
                     <tbody>
                       {previewRows.map((row) => (
-                        <tr key={row._id} className="border-b border-[#f0f4f8]">
+                        <tr key={row._id} className="border-b border-muted">
                           <td className="px-3 py-1.5">
                             <input
                               type="text"
                               value={row.name}
                               onChange={(e) => updatePreviewRow(row._id, 'name', e.target.value)}
-                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              className="w-full border border-input rounded px-2 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                               aria-label="Product name"
                             />
                           </td>
@@ -442,7 +442,7 @@ export function ProductsPage() {
                               type="text"
                               value={row.sku}
                               onChange={(e) => updatePreviewRow(row._id, 'sku', e.target.value)}
-                              className="w-28 border border-[#dce8f5] rounded px-2 py-1 text-xs font-mono text-[#4b5e73] focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              className="w-28 border border-input rounded px-2 py-1 text-xs font-mono text-foreground/80 focus:outline-none focus:ring-1 focus:ring-ring"
                               aria-label="Product SKU"
                             />
                           </td>
@@ -451,7 +451,7 @@ export function ProductsPage() {
                               type="number"
                               value={row.price}
                               onChange={(e) => updatePreviewRow(row._id, 'price', e.target.value)}
-                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-right focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              className="w-full border border-input rounded px-2 py-1 text-xs text-foreground text-right focus:outline-none focus:ring-1 focus:ring-ring"
                               min="0"
                               step="0.01"
                               aria-label="Product price"
@@ -464,7 +464,7 @@ export function ProductsPage() {
                               onChange={(e) =>
                                 updatePreviewRow(row._id, 'stock_quantity', e.target.value)
                               }
-                              className="w-full border border-[#dce8f5] rounded px-2 py-1 text-xs text-[#0d1f35] text-center focus:outline-none focus:ring-1 focus:ring-[#1a56db]"
+                              className="w-full border border-input rounded px-2 py-1 text-xs text-foreground text-center focus:outline-none focus:ring-1 focus:ring-ring"
                               min="0"
                               aria-label="Stock quantity"
                             />
@@ -472,7 +472,7 @@ export function ProductsPage() {
                           <td className="px-3 py-1.5 text-right">
                             <button
                               onClick={() => removePreviewRow(row._id)}
-                              className="text-[#8aa0b8] hover:text-red-500 transition-colors"
+                              className="text-muted-foreground hover:text-red-500 transition-colors"
                               title="Remove row"
                             >
                               <X size={13} />
@@ -485,20 +485,20 @@ export function ProductsPage() {
                 </div>
 
                 {/* Modal action bar */}
-                <div className="px-5 py-3 border-t border-[#e2ecf9] flex items-center justify-end gap-2">
+                <div className="px-5 py-3 border-t border-border flex items-center justify-end gap-2">
                   <button
                     onClick={() => {
                       setImportState(null);
                       setReplaceExisting(false);
                     }}
-                    className="bg-white border border-[#dce8f5] text-[#4b5e73] text-xs px-3 py-1.5 rounded-md hover:bg-[#f0f4f8] transition-colors"
+                    className="bg-card border border-input text-foreground/80 text-xs px-3 py-1.5 rounded-md hover:bg-muted transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleImportConfirm}
                     disabled={previewRows.length === 0}
-                    className="bg-[#1a56db] text-white text-xs px-3 py-1.5 rounded-md hover:bg-[#1447c0] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    className="bg-primary text-white text-xs px-3 py-1.5 rounded-md hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                     Import {previewRows.length} Products
                   </button>

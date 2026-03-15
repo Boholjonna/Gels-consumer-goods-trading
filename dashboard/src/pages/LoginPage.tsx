@@ -57,13 +57,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[#0c1c35]">
+    <div className="min-h-screen flex bg-gradient-to-br from-[#0A2040] via-[#0D2B52] to-[#1060C0]">
       {/* Left Panel - Illustration */}
       <div className="hidden lg:flex lg:w-1/2 items-center justify-center p-12 relative overflow-hidden">
         {/* Decorative background shapes */}
         <div className="absolute inset-0 opacity-10">
-          <div className="absolute -top-20 -left-20 w-96 h-96 bg-[#1a56db] rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-[#3b82f6] rounded-full blur-3xl" />
+          <div className="absolute -top-20 -left-20 w-96 h-96 bg-primary rounded-full blur-3xl" />
+          <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-primary rounded-full blur-3xl" />
         </div>
 
         <div className="relative z-10 text-center max-w-md">
@@ -75,25 +75,25 @@ export function LoginPage() {
           <h2 className="text-2xl font-bold text-white mb-3">
             Admin Control Center
           </h2>
-          <p className="text-[#7da0c4] text-sm leading-relaxed">
+          <p className="text-blue-200/70 text-sm leading-relaxed">
             Manage your point-of-sale operations, monitor orders, and oversee your team — all in one place.
           </p>
         </div>
       </div>
 
       {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-[#f0f4f8]  lg:rounded-l-[2rem]">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 bg-background  lg:rounded-l-[2rem]">
         <div className="w-full max-w-sm">
           {/* Brand */}
           <div className="flex items-center gap-2.5 mb-8">
-            <div className="w-9 h-9 rounded-xl bg-[#1a56db] flex items-center justify-center shadow-lg shadow-blue-500/25">
+            <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/25">
               <ShoppingCart size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-[#0c1c35] leading-tight">
+              <h1 className="text-lg font-bold text-foreground leading-tight">
                 POS Admin
               </h1>
-              <p className="text-[11px] text-[#5b7da8] leading-tight">
+              <p className="text-[11px] text-muted-foreground leading-tight">
                 Order Management System
               </p>
             </div>
@@ -101,8 +101,8 @@ export function LoginPage() {
 
           {/* Heading */}
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-[#0c1c35]">Welcome back</h2>
-            <p className="text-sm text-[#5b7da8] mt-1">
+            <h2 className="text-2xl font-bold text-foreground">Welcome back</h2>
+            <p className="text-sm text-muted-foreground mt-1">
               Sign in to your admin dashboard
             </p>
           </div>
@@ -128,23 +128,23 @@ export function LoginPage() {
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-[#1e3a5c] mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Email address
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); setErrorType('general'); }}
-                className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 text-sm bg-white
-                  focus:outline-none focus:ring-2 focus:ring-[#1a56db]/30 focus:border-[#1a56db]
-                  placeholder:text-gray-400 transition-colors"
+                className="w-full border border-input rounded-xl px-3.5 py-2.5 text-sm bg-card
+                  focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
+                  placeholder:text-muted-foreground transition-colors"
                 placeholder="admin@example.com"
                 autoComplete="email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-[#1e3a5c] mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5">
                 Password
               </label>
               <div className="relative">
@@ -152,9 +152,9 @@ export function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); setError(''); setErrorType('general'); }}
-                  className="w-full border border-gray-300 rounded-xl px-3.5 py-2.5 pr-10 text-sm bg-white
-                    focus:outline-none focus:ring-2 focus:ring-[#1a56db]/30 focus:border-[#1a56db]
-                    placeholder:text-gray-400 transition-colors"
+                  className="w-full border border-input rounded-xl px-3.5 py-2.5 pr-10 text-sm bg-card
+                    focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-ring
+                    placeholder:text-muted-foreground transition-colors"
                   placeholder="Enter your password"
                   autoComplete="current-password"
                 />
@@ -171,9 +171,9 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1a56db] text-white py-2.5 rounded-xl font-medium text-sm
-                hover:bg-[#1747b5] active:bg-[#123d9e] disabled:opacity-60 disabled:cursor-not-allowed
-                shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40
+              className="w-full bg-primary text-white py-2.5 rounded-xl font-medium text-sm
+                hover:bg-primary/90 active:bg-primary/80 disabled:opacity-60 disabled:cursor-not-allowed
+                shadow-lg shadow-primary/25 hover:shadow-primary/40
                 transition-all duration-200 flex items-center justify-center gap-2"
             >
               {loading ? (
