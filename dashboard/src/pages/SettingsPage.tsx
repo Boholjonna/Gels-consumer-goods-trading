@@ -826,7 +826,7 @@ export function SettingsPage() {
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={teamMembers.map((m) => m.id)} strategy={rectSortingStrategy} disabled={!creditsEditMode}>
-                    <div className="flex flex-wrap justify-center gap-6">
+                    <div className="flex flex-wrap justify-center gap-6 max-w-[588px] mx-auto">
                       {teamMembers.map((member) => (
                         <SortableMemberCard
                           key={member.id}
