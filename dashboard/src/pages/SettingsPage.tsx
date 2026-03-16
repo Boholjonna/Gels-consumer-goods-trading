@@ -25,6 +25,7 @@ import {
   X,
   Upload,
   ImageIcon,
+  Plus,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useSidebar, SidebarMode } from '@/contexts/SidebarContext';
@@ -144,6 +145,13 @@ export function SettingsPage() {
   const groupPhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [groupPhotoUrl, setGroupPhotoUrl] = useState<string | null>(null);
   const [uploadingGroupPhoto, setUploadingGroupPhoto] = useState(false);
+  const [addingMember, setAddingMember] = useState(false);
+  const [newMemberName, setNewMemberName] = useState('');
+  const [newMemberRole, setNewMemberRole] = useState<'Researcher' | 'Developer'>('Researcher');
+  const newMemberFileRef = useRef<HTMLInputElement | null>(null);
+  const [newMemberFile, setNewMemberFile] = useState<File | null>(null);
+  const [newMemberPreview, setNewMemberPreview] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   function updateNotifPref(key: keyof NotifPrefs, value: boolean) {
     setNotifPrefs((prev) => {
@@ -259,6 +267,62 @@ export function SettingsPage() {
       toast.success('Name updated');
     } catch {
       toast.error('Failed to update name');
+    }
+  }
+
+  async function handleAddMember() {
+    const trimmed = newMemberName.trim();
+    if (!trimmed) { toast.error('Name is required'); return; }
+    setAddingMember(true);
+    try {
+      const maxSort = teamMembers.reduce((max, m) => Math.max(max, m.sort_order), 0);
+      const { data, error } = await supabase
+        .from('team_members')
+        .insert({ name: trimmed, role: newMemberRole, sort_order: maxSort + 1 })
+        .select()
+        .single();
+      if (error) throw error;
+      const member = data as TeamMember;
+
+      // Upload photo if selected
+      if (newMemberFile) {
+        const ext = newMemberFile.name.split('.').pop() || 'jpg';
+        const filePath = `team/${member.id}.${ext}`;
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, newMemberFile, { upsert: true, contentType: newMemberFile.type });
+        if (!uploadError) {
+          const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(filePath);
+          const avatar_url = `${urlData.publicUrl}?t=${Date.now()}`;
+          await supabase.from('team_members').update({ avatar_url }).eq('id', member.id);
+          member.avatar_url = avatar_url;
+        }
+      }
+
+      setTeamMembers((prev) => [...prev, member]);
+      setNewMemberName('');
+      setNewMemberRole('Researcher');
+      setNewMemberFile(null);
+      setNewMemberPreview(null);
+      toast.success('Team member added');
+    } catch {
+      toast.error('Failed to add team member');
+    } finally {
+      setAddingMember(false);
+    }
+  }
+
+  async function handleDeleteMember(memberId: string) {
+    setDeletingId(memberId);
+    try {
+      const { error } = await supabase.from('team_members').delete().eq('id', memberId);
+      if (error) throw error;
+      setTeamMembers((prev) => prev.filter((m) => m.id !== memberId));
+      toast.success('Team member removed');
+    } catch {
+      toast.error('Failed to remove team member');
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -630,16 +694,12 @@ export function SettingsPage() {
                 <div className="flex justify-center py-8">
                   <Loader2 size={18} className="animate-spin text-[#5B9BD5]" />
                 </div>
-              ) : teamMembers.length === 0 ? (
-                <p className="text-[10px] text-[#8FAABE]/40 text-center py-8">
-                  No team members yet. Add them via the database.
-                </p>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="flex flex-wrap gap-4">
                   {teamMembers.map((member) => {
                     const isEditing = editingId === member.id;
                     return (
-                      <div key={member.id} className="bg-[#0D1F33] border border-[#1E3F5E]/30 rounded-lg p-4 flex flex-col items-center text-center relative group">
+                      <div key={member.id} className="bg-[#0D1F33] border border-[#1E3F5E]/30 rounded-lg p-4 flex flex-col items-center text-center relative group w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] md:w-[calc(25%-12px)]">
                         {/* Edit toggle */}
                         {!isEditing ? (
                           <button
@@ -658,6 +718,20 @@ export function SettingsPage() {
                             <X size={11} />
                           </button>
                         )}
+
+                        {/* Delete button */}
+                        <button
+                          onClick={() => handleDeleteMember(member.id)}
+                          disabled={deletingId === member.id}
+                          className="absolute top-2 left-2 p-1 rounded-md text-[#8FAABE]/30 opacity-0 group-hover:opacity-100 hover:text-[#E06C75] hover:bg-[#E06C75]/10 transition-all disabled:opacity-40"
+                          title="Remove"
+                        >
+                          {deletingId === member.id ? (
+                            <Loader2 size={11} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={11} />
+                          )}
+                        </button>
 
                         {/* Avatar */}
                         <div className="relative flex-shrink-0 mb-3">
@@ -723,6 +797,83 @@ export function SettingsPage() {
                       </div>
                     );
                   })}
+
+                  {/* Add Member Card */}
+                  <div className="bg-[#0D1F33] border-2 border-dashed border-[#1E3F5E]/40 rounded-lg p-4 flex flex-col items-center text-center w-[calc(50%-8px)] sm:w-[calc(33.333%-11px)] md:w-[calc(25%-12px)]">
+                    {/* Photo preview or upload trigger */}
+                    <div className="relative flex-shrink-0 mb-3">
+                      {newMemberPreview ? (
+                        <img
+                          src={newMemberPreview}
+                          alt="New member"
+                          className="w-16 h-16 rounded-full object-cover border-2 border-[#1E3F5E]/60 cursor-pointer"
+                          onClick={() => newMemberFileRef.current?.click()}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => newMemberFileRef.current?.click()}
+                          className="w-16 h-16 rounded-full bg-[#162F4D] border-2 border-dashed border-[#1E3F5E]/60 flex items-center justify-center cursor-pointer hover:border-[#5B9BD5]/50 transition-colors"
+                        >
+                          <Camera size={18} className="text-[#8FAABE]/30" />
+                        </button>
+                      )}
+                      <input
+                        ref={newMemberFileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            setNewMemberFile(file);
+                            setNewMemberPreview(URL.createObjectURL(file));
+                          }
+                          e.target.value = '';
+                        }}
+                      />
+                    </div>
+
+                    {/* Name input */}
+                    <input
+                      value={newMemberName}
+                      onChange={(e) => setNewMemberName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleAddMember(); }}
+                      placeholder="Name"
+                      className="w-full bg-[#162F4D] border border-[#1E3F5E]/60 rounded px-2 py-1 text-xs text-[#E8EDF2] text-center outline-none focus:border-[#5B9BD5] mb-2 placeholder:text-[#8FAABE]/30"
+                    />
+
+                    {/* Role selector */}
+                    <div className="flex gap-1 w-full mb-3">
+                      {(['Researcher', 'Developer'] as const).map((role) => (
+                        <button
+                          key={role}
+                          onClick={() => setNewMemberRole(role)}
+                          className={cn(
+                            'flex-1 py-1 rounded text-[9px] font-medium transition-colors',
+                            newMemberRole === role
+                              ? 'bg-[#5B9BD5] text-white'
+                              : 'bg-[#162F4D] text-[#8FAABE]/40 hover:text-[#E8EDF2]'
+                          )}
+                        >
+                          {role}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Add button */}
+                    <button
+                      onClick={handleAddMember}
+                      disabled={addingMember || !newMemberName.trim()}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-md text-[10px] font-medium bg-[#98C379]/10 text-[#98C379] hover:bg-[#98C379]/20 transition-colors disabled:opacity-40"
+                    >
+                      {addingMember ? (
+                        <Loader2 size={10} className="animate-spin" />
+                      ) : (
+                        <Plus size={10} />
+                      )}
+                      Add
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

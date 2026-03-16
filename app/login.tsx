@@ -62,7 +62,7 @@ export default function ActivationScreen() {
 
   return (
     <KeyboardAvoidingView
-      className="flex-1 bg-white"
+      className="flex-1 bg-[#0D1F33]"
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View className="flex-1 justify-center items-center px-4">
@@ -74,31 +74,31 @@ export default function ActivationScreen() {
           }
         >
           {/* Header */}
-          <Text className="text-3xl font-bold text-blue-600 text-center mb-2">
-            POS App
+          <Text className="text-3xl font-bold text-[#5B9BD5] text-center mb-2">
+            GELS
           </Text>
-          <Text className="text-base text-gray-500 text-center mb-8">
+          <Text className="text-base text-[#8FAABE] text-center mb-8">
             Activate your collector account
           </Text>
 
           {/* Error */}
           {error ? (
-            <View className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 mx-4">
-              <Text className="text-red-600 text-sm text-center">{error}</Text>
+            <View className="bg-[#E06C75]/10 border border-[#E06C75]/30 rounded-lg p-3 mb-4 mx-4">
+              <Text className="text-[#E06C75] text-sm text-center">{error}</Text>
             </View>
           ) : null}
 
           {/* Loading overlay */}
           {loading ? (
-            <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 mx-4 flex-row items-center justify-center">
-              <ActivityIndicator size="small" color="#3b82f6" />
-              <Text className="text-blue-600 text-sm ml-2">Activating...</Text>
+            <View className="bg-[#5B9BD5]/10 border border-[#5B9BD5]/30 rounded-lg p-3 mb-4 mx-4 flex-row items-center justify-center">
+              <ActivityIndicator size="small" color="#5B9BD5" />
+              <Text className="text-[#5B9BD5] text-sm ml-2">Activating...</Text>
             </View>
           ) : null}
 
           {/* Scan QR Button */}
           <TouchableOpacity
-            className="mx-4 mb-6 bg-blue-500 rounded-xl py-4 flex-row items-center justify-center"
+            className="mx-4 mb-6 bg-[#5B9BD5] rounded-xl py-4 flex-row items-center justify-center"
             onPress={() => router.push('/scan')}
             disabled={loading}
           >
@@ -110,34 +110,35 @@ export default function ActivationScreen() {
 
           {/* Divider */}
           <View className="flex-row items-center mx-4 mb-6">
-            <View className="flex-1 h-px bg-gray-200" />
-            <Text className="text-gray-400 text-sm mx-3">or enter code manually</Text>
-            <View className="flex-1 h-px bg-gray-200" />
+            <View className="flex-1 h-px bg-[#1E3F5E]/60" />
+            <Text className="text-[#8FAABE]/50 text-sm mx-3">or enter code manually</Text>
+            <View className="flex-1 h-px bg-[#1E3F5E]/60" />
           </View>
 
           {/* Manual Code Entry */}
           <View className="px-4">
-            <Text className="text-sm font-medium text-gray-700 mb-2">
+            <Text className="text-sm font-medium text-[#8FAABE] mb-2">
               Activation Code
             </Text>
             <TextInput
               ref={inputRef}
-              className="border border-gray-300 rounded-lg px-4 py-4 text-center text-2xl font-mono tracking-widest"
+              className="border border-[#1E3F5E]/60 bg-[#162F4D] rounded-lg px-4 py-4 text-center text-2xl font-mono tracking-widest text-[#E8EDF2]"
               value={code}
               onChangeText={(text) => setCode(filterCode(text))}
               placeholder="ABC123"
-              placeholderTextColor="#d1d5db"
+              placeholderTextColor="#8FAABE44"
               maxLength={6}
               autoCapitalize="characters"
               autoCorrect={false}
+              keyboardAppearance="dark"
             />
-            <Text className="text-gray-400 text-xs text-center mt-2">
+            <Text className="text-[#8FAABE]/40 text-xs text-center mt-2">
               Enter the 6-character code from your administrator
             </Text>
 
             <TouchableOpacity
               className={`rounded-lg py-4 items-center mt-6 ${
-                loading || code.length !== 6 ? 'bg-blue-300' : 'bg-blue-500'
+                loading || code.length !== 6 ? 'bg-[#5B9BD5]/40' : 'bg-[#5B9BD5]'
               }`}
               onPress={handleActivate}
               disabled={loading || code.length !== 6}

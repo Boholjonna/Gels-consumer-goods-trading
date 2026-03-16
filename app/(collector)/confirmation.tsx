@@ -34,30 +34,30 @@ export default function ConfirmationScreen() {
   if (!orderNumber) return null;
 
   return (
-    <View className="flex-1 bg-white items-center justify-center px-4">
+    <View className="flex-1 bg-[#0D1F33] items-center justify-center px-4">
       <View style={isTablet ? { maxWidth: 400, width: '100%' } : { width: '100%', paddingHorizontal: 16 }}>
         <View className="items-center mb-6">
           <Animated.View
-            className="bg-green-100 w-24 h-24 rounded-full items-center justify-center mb-6"
+            className="bg-[#98C379]/10 w-24 h-24 rounded-full items-center justify-center mb-6"
             style={{ transform: [{ scale: scaleAnim }] }}
           >
-            <Text className="text-5xl text-green-600">✓</Text>
+            <Text className="text-5xl text-[#98C379]">✓</Text>
           </Animated.View>
 
-          <Text className="text-2xl font-bold text-gray-800 mb-2">Order Submitted!</Text>
-          <Text className="text-gray-500 text-center">
+          <Text className="text-2xl font-bold text-[#E8EDF2] mb-2">Order Submitted!</Text>
+          <Text className="text-[#8FAABE] text-center">
             Your order has been sent for processing.
           </Text>
         </View>
 
-        <View className="bg-gray-50 rounded-xl p-4 w-full mb-6">
-          <Text className="text-sm text-gray-500 text-center">Order Number</Text>
-          <Text className="text-xl font-bold text-blue-600 text-center mt-1">
+        <View className="bg-[#1A3755] rounded-xl p-4 w-full mb-6">
+          <Text className="text-sm text-[#8FAABE]/50 text-center">Order Number</Text>
+          <Text className="text-xl font-bold text-[#5B9BD5] text-center mt-1">
             {orderNumber}
           </Text>
         </View>
 
-        <Text className="text-xs text-gray-400 text-center">
+        <Text className="text-xs text-[#8FAABE]/40 text-center">
           Redirecting to products...
         </Text>
       </View>

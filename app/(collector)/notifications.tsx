@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNotifications } from '@/hooks/useNotifications';
 import type { Notification, NotificationType } from '@/types';
 
@@ -52,15 +53,15 @@ type IconConfig = { name: React.ComponentProps<typeof Ionicons>['name']; bg: str
 function iconFor(type: NotificationType): IconConfig {
   switch (type) {
     case 'order_status_changed':
-      return { name: 'receipt-outline',     bg: 'bg-blue-50',   color: '#3b82f6' };
+      return { name: 'receipt-outline',      bg: 'bg-[#5B9BD5]/10', color: '#5B9BD5' };
     case 'low_stock':
-      return { name: 'warning-outline',     bg: 'bg-orange-50', color: '#f97316' };
+      return { name: 'warning-outline',      bg: 'bg-[#E5C07B]/10', color: '#E5C07B' };
     case 'out_of_stock':
-      return { name: 'close-circle-outline', bg: 'bg-red-50',   color: '#ef4444' };
+      return { name: 'close-circle-outline', bg: 'bg-[#E06C75]/10', color: '#E06C75' };
     case 'price_changed':
-      return { name: 'pricetag-outline',    bg: 'bg-purple-50', color: '#a855f7' };
+      return { name: 'pricetag-outline',     bg: 'bg-[#C678DD]/10', color: '#C678DD' };
     case 'new_product':
-      return { name: 'sparkles-outline',    bg: 'bg-green-50',  color: '#22c55e' };
+      return { name: 'sparkles-outline',     bg: 'bg-[#98C379]/10', color: '#98C379' };
   }
 }
 
@@ -74,13 +75,13 @@ function NotificationRow({
   const icon = iconFor(item.type);
   return (
     <TouchableOpacity
-      className={`flex-row items-start px-4 py-3 ${!item.is_read ? 'bg-blue-50/40' : 'bg-white'}`}
+      className={`flex-row items-start px-4 py-3 ${!item.is_read ? 'bg-[#5B9BD5]/10' : 'bg-[#162F4D]'}`}
       onPress={() => { if (!item.is_read) onPress(item.id); }}
       activeOpacity={0.7}
     >
       {/* Unread dot */}
       <View className="w-2 mt-2 mr-2 items-center">
-        {!item.is_read && <View className="w-2 h-2 rounded-full bg-blue-500" />}
+        {!item.is_read && <View className="w-2 h-2 rounded-full bg-[#5B9BD5]" />}
       </View>
 
       {/* Type icon */}
@@ -91,39 +92,40 @@ function NotificationRow({
       {/* Text */}
       <View className="flex-1">
         <Text
-          className={`text-sm ${!item.is_read ? 'font-bold text-gray-900' : 'font-semibold text-gray-700'}`}
+          className={`text-sm ${!item.is_read ? 'font-bold text-[#E8EDF2]' : 'font-semibold text-[#E8EDF2]/80'}`}
           numberOfLines={1}
         >
           {item.title}
         </Text>
-        <Text className="text-xs text-gray-500 mt-0.5 leading-4" numberOfLines={2}>
+        <Text className="text-xs text-[#8FAABE]/60 mt-0.5 leading-4" numberOfLines={2}>
           {item.body}
         </Text>
-        <Text className="text-[11px] text-gray-400 mt-1">{relativeTime(item.created_at)}</Text>
+        <Text className="text-[11px] text-[#8FAABE]/40 mt-1">{relativeTime(item.created_at)}</Text>
       </View>
     </TouchableOpacity>
   );
 }
 
 export default function NotificationsScreen() {
+  const insets = useSafeAreaInsets();
   const { notifications, loading, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   if (loading) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View className="flex-1 bg-[#0D1F33] items-center justify-center">
+        <ActivityIndicator size="large" color="#5B9BD5" />
       </View>
     );
   }
 
   if (notifications.length === 0) {
     return (
-      <View className="flex-1 bg-gray-50 items-center justify-center px-4">
-        <View className="w-16 h-16 bg-gray-100 rounded-full items-center justify-center mb-4">
-          <Ionicons name="notifications-outline" size={32} color="#d1d5db" />
+      <View className="flex-1 bg-[#0D1F33] items-center justify-center px-4">
+        <View className="w-16 h-16 bg-[#162F4D] rounded-full items-center justify-center mb-4">
+          <Ionicons name="notifications-outline" size={32} color="#8FAABE33" />
         </View>
-        <Text className="text-gray-600 text-base font-semibold">No notifications yet</Text>
-        <Text className="text-gray-400 text-sm mt-1 text-center">
+        <Text className="text-[#8FAABE] text-base font-semibold">No notifications yet</Text>
+        <Text className="text-[#8FAABE]/50 text-sm mt-1 text-center">
           You'll be notified about order updates, stock changes, and price changes.
         </Text>
       </View>
@@ -133,31 +135,31 @@ export default function NotificationsScreen() {
   const groups = groupByDay(notifications);
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-[#0D1F33]">
       {unreadCount > 0 && (
-        <View className="flex-row items-center justify-between px-4 py-2.5 bg-white border-b border-gray-100">
-          <Text className="text-xs text-gray-500">
+        <View className="flex-row items-center justify-between px-4 py-2.5 bg-[#162F4D] border-b border-[#1E3F5E]/30">
+          <Text className="text-xs text-[#8FAABE]/60">
             {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}
           </Text>
           <TouchableOpacity onPress={markAllAsRead}>
-            <Text className="text-xs text-blue-600 font-semibold">Mark all as read</Text>
+            <Text className="text-xs text-[#5B9BD5] font-semibold">Mark all as read</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}>
         {groups.map(({ label, items }) => (
           <View key={label}>
             <View className="px-4 pt-4 pb-1">
-              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              <Text className="text-[10px] font-bold text-[#8FAABE]/40 uppercase tracking-wider">
                 {label}
               </Text>
             </View>
-            <View className="bg-white border-y border-gray-100 overflow-hidden">
+            <View className="bg-[#162F4D] border-y border-[#1E3F5E]/30 overflow-hidden">
               {items.map((item, index) => (
                 <View key={item.id}>
                   <NotificationRow item={item} onPress={markAsRead} />
-                  {index < items.length - 1 && <View className="h-px bg-gray-100 ml-14" />}
+                  {index < items.length - 1 && <View className="h-px bg-[#1E3F5E]/30 ml-14" />}
                 </View>
               ))}
             </View>

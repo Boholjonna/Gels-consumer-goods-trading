@@ -27,19 +27,19 @@ export function StoreSelector({ stores, selectedId, onSelect }: StoreSelectorPro
               <TouchableOpacity
                 key={store.id}
                 className={`flex-1 p-4 border rounded-lg ${
-                  selectedId === store.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+                  selectedId === store.id ? 'border-[#5B9BD5] bg-[#5B9BD5]/10' : 'border-[#1E3F5E]/60 bg-[#162F4D]'
                 }`}
                 onPress={() => onSelect(store)}
               >
                 <Text
                   className={`text-base font-semibold ${
-                    selectedId === store.id ? 'text-blue-700' : 'text-gray-800'
+                    selectedId === store.id ? 'text-[#5B9BD5]' : 'text-[#E8EDF2]'
                   }`}
                 >
                   {store.name}
                 </Text>
                 {store.address && (
-                  <Text className="text-sm text-gray-500 mt-1">{store.address}</Text>
+                  <Text className="text-sm text-[#8FAABE]/70 mt-1">{store.address}</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -56,19 +56,19 @@ export function StoreSelector({ stores, selectedId, onSelect }: StoreSelectorPro
         <TouchableOpacity
           key={store.id}
           className={`p-4 border rounded-lg mb-2 ${
-            selectedId === store.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white'
+            selectedId === store.id ? 'border-[#5B9BD5] bg-[#5B9BD5]/10' : 'border-[#1E3F5E]/60 bg-[#162F4D]'
           }`}
           onPress={() => onSelect(store)}
         >
           <Text
             className={`text-base font-semibold ${
-              selectedId === store.id ? 'text-blue-700' : 'text-gray-800'
+              selectedId === store.id ? 'text-[#5B9BD5]' : 'text-[#E8EDF2]'
             }`}
           >
             {store.name}
           </Text>
           {store.address && (
-            <Text className="text-sm text-gray-500 mt-1">{store.address}</Text>
+            <Text className="text-sm text-[#8FAABE]/70 mt-1">{store.address}</Text>
           )}
         </TouchableOpacity>
       ))}

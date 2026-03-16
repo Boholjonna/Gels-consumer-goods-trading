@@ -11,19 +11,38 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getOrders } from '@/services/orders.service';
 import { formatCurrency, formatDate } from '@/lib/formatters';
 import type { Order, OrderFilters } from '@/types';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
-  pending: { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-  confirmed: { bg: 'bg-blue-100', text: 'text-blue-700' },
-  processing: { bg: 'bg-purple-100', text: 'text-purple-700' },
-  completed: { bg: 'bg-green-100', text: 'text-green-700' },
-  cancelled: { bg: 'bg-red-100', text: 'text-red-700' },
+  pending: { bg: 'bg-[#E5C07B]/10', text: 'text-[#E5C07B]' },
+  confirmed: { bg: 'bg-[#5B9BD5]/10', text: 'text-[#5B9BD5]' },
+  processing: { bg: 'bg-[#C678DD]/10', text: 'text-[#C678DD]' },
+  completed: { bg: 'bg-[#98C379]/10', text: 'text-[#98C379]' },
+  cancelled: { bg: 'bg-[#E06C75]/10', text: 'text-[#E06C75]' },
 };
 
-const statusFilters = ['all', 'pending', 'confirmed', 'processing', 'completed', 'cancelled'] as const;
+const statusFilterGroups = [
+  { label: null, items: [{ key: 'all', label: 'All Orders' }] },
+  {
+    label: 'Active',
+    items: [
+      { key: 'pending', label: 'Pending' },
+      { key: 'confirmed', label: 'Confirmed' },
+      { key: 'processing', label: 'Processing' },
+    ],
+  },
+  {
+    label: 'Resolved',
+    items: [
+      { key: 'completed', label: 'Completed' },
+      { key: 'cancelled', label: 'Cancelled' },
+    ],
+  },
+];
+
 const sortOptions: { value: OrderFilters['sort_by']; label: string }[] = [
   { value: 'newest', label: 'Newest' },
   { value: 'oldest', label: 'Oldest' },
@@ -34,6 +53,7 @@ const sortOptions: { value: OrderFilters['sort_by']; label: string }[] = [
 const PAGE_SIZE = 20;
 
 export default function OrdersScreen() {
+  const insets = useSafeAreaInsets();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -47,6 +67,7 @@ export default function OrdersScreen() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -85,6 +106,7 @@ export default function OrdersScreen() {
 
   function changeStatus(status: string) {
     setStatusFilter(status);
+    setShowStatusDropdown(false);
     setPage(1);
     fetchOrders(false, { p: 1, status });
   }
@@ -103,10 +125,15 @@ export default function OrdersScreen() {
   }
 
   function getStatusStyle(status: string) {
-    return statusColors[status] || { bg: 'bg-gray-100', text: 'text-gray-700' };
+    return statusColors[status] || { bg: 'bg-[#1A3755]', text: 'text-[#8FAABE]' };
   }
 
-  // Client-side search filtering (search within already-fetched page)
+  function getStatusLabel(status: string): string {
+    if (status === 'all') return 'All Orders';
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  }
+
+  // Client-side search filtering
   const displayOrders = useMemo(() => {
     if (!search.trim()) return orders;
     const q = search.toLowerCase();
@@ -119,19 +146,19 @@ export default function OrdersScreen() {
 
   if (loading && orders.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View className="flex-1 items-center justify-center bg-[#0D1F33]">
+        <ActivityIndicator size="large" color="#5B9BD5" />
       </View>
     );
   }
 
   if (error && orders.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center bg-gray-50 px-4">
-        <Ionicons name="cloud-offline-outline" size={48} color="#d1d5db" />
-        <Text className="text-gray-500 mt-3 text-center">{error}</Text>
+      <View className="flex-1 items-center justify-center bg-[#0D1F33] px-4">
+        <Ionicons name="cloud-offline-outline" size={48} color="#8FAABE33" />
+        <Text className="text-[#8FAABE] mt-3 text-center">{error}</Text>
         <TouchableOpacity
-          className="mt-4 bg-blue-500 rounded-xl px-6 py-3"
+          className="mt-4 bg-[#5B9BD5] rounded-xl px-6 py-3"
           onPress={() => fetchOrders()}
         >
           <Text className="text-white font-semibold">Retry</Text>
@@ -141,106 +168,141 @@ export default function OrdersScreen() {
   }
 
   return (
-    <View className="flex-1 bg-gray-50">
+    <View className="flex-1 bg-[#0D1F33]">
       {/* Search bar */}
-      <View className="bg-white px-3 pt-3 pb-2 border-b border-gray-100">
-        <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
-          <Ionicons name="search-outline" size={16} color="#9ca3af" />
+      <View className="bg-[#162F4D] px-3 pt-3 pb-2 border-b border-[#1E3F5E]/30">
+        <View className="flex-row items-center bg-[#1A3755] rounded-lg px-3 py-2.5">
+          <Ionicons name="search-outline" size={16} color="#8FAABE" />
           <TextInput
-            className="flex-1 ml-2 text-sm text-gray-800"
+            className="flex-1 ml-2 text-sm text-[#E8EDF2]"
             value={search}
             onChangeText={setSearch}
             placeholder="Search orders..."
-            placeholderTextColor="#9ca3af"
+            placeholderTextColor="#8FAABE66"
             autoCapitalize="none"
             autoCorrect={false}
+            keyboardAppearance="dark"
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color="#9ca3af" />
+              <Ionicons name="close-circle" size={16} color="#8FAABE" />
             </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* Status filter tabs */}
-      <View className="bg-white border-b border-gray-100">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingHorizontal: 12, paddingVertical: 8, gap: 6 }}
-        >
-          {statusFilters.map((status) => (
-            <TouchableOpacity
-              key={status}
-              onPress={() => changeStatus(status)}
-              className={`px-3 py-1.5 rounded-full ${
-                statusFilter === status ? 'bg-blue-500' : 'bg-gray-100'
-              }`}
-            >
-              <Text
-                className={`text-xs font-medium capitalize ${
-                  statusFilter === status ? 'text-white' : 'text-gray-600'
-                }`}
-              >
-                {status === 'all' ? 'All' : status}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Sort bar */}
-      <View className="flex-row items-center justify-between px-3 py-2 bg-white border-b border-gray-100">
-        <Text className="text-xs text-gray-400">
-          {total} order{total !== 1 ? 's' : ''}
-          {totalPages > 1 ? ` · Page ${page}/${totalPages}` : ''}
-        </Text>
+      {/* Status filter dropdown + Sort */}
+      <View className="flex-row items-center justify-between px-3 py-2.5 bg-[#162F4D] border-b border-[#1E3F5E]/30">
+        {/* Status dropdown trigger */}
         <View className="relative">
           <TouchableOpacity
-            className="flex-row items-center gap-1 px-2.5 py-1.5 bg-gray-100 rounded-lg"
-            onPress={() => setShowSortMenu(!showSortMenu)}
+            className="flex-row items-center gap-1.5 px-3 py-2 bg-[#1A3755] rounded-lg"
+            onPress={() => { setShowStatusDropdown(!showStatusDropdown); setShowSortMenu(false); }}
           >
-            <Ionicons name="swap-vertical-outline" size={14} color="#6b7280" />
-            <Text className="text-xs font-medium text-gray-600">
-              {sortOptions.find((s) => s.value === sortBy)?.label}
+            {statusFilter !== 'all' && (
+              <View className={`w-2 h-2 rounded-full ${getStatusStyle(statusFilter).bg.replace('/10', '')}`} />
+            )}
+            <Text className="text-xs font-medium text-[#E8EDF2]">
+              {getStatusLabel(statusFilter)}
             </Text>
+            <Ionicons name="chevron-down" size={14} color="#8FAABE" />
           </TouchableOpacity>
-          {showSortMenu && (
+
+          {showStatusDropdown && (
             <View
-              className="absolute right-0 top-9 bg-white rounded-xl border border-gray-200 shadow-lg z-50 w-36 overflow-hidden"
+              className="absolute left-0 top-10 bg-[#162F4D] rounded-xl border border-[#1E3F5E]/60 shadow-lg z-50 w-44 overflow-hidden"
               style={{ elevation: 8 }}
             >
-              {sortOptions.map((opt) => (
-                <TouchableOpacity
-                  key={opt.value}
-                  className={`px-4 py-2.5 border-b border-gray-50 ${
-                    sortBy === opt.value ? 'bg-blue-50' : ''
-                  }`}
-                  onPress={() => changeSort(opt.value)}
-                >
-                  <Text
-                    className={`text-sm ${
-                      sortBy === opt.value ? 'text-blue-600 font-semibold' : 'text-gray-700'
-                    }`}
-                  >
-                    {opt.label}
-                  </Text>
-                </TouchableOpacity>
+              {statusFilterGroups.map((group, gi) => (
+                <View key={gi}>
+                  {group.label && (
+                    <View className="px-3 pt-2.5 pb-1">
+                      <Text className="text-[9px] font-bold text-[#8FAABE]/40 uppercase tracking-wider">
+                        {group.label}
+                      </Text>
+                    </View>
+                  )}
+                  {group.items.map((item) => (
+                    <TouchableOpacity
+                      key={item.key}
+                      className={`px-3 py-2.5 flex-row items-center justify-between ${
+                        statusFilter === item.key ? 'bg-[#5B9BD5]/10' : ''
+                      }`}
+                      onPress={() => changeStatus(item.key)}
+                    >
+                      <View className="flex-row items-center gap-2">
+                        {item.key !== 'all' && (
+                          <View className={`w-2 h-2 rounded-full ${(statusColors[item.key]?.bg || 'bg-[#1A3755]').replace('/10', '')}`} />
+                        )}
+                        <Text className={`text-xs ${statusFilter === item.key ? 'text-[#5B9BD5] font-semibold' : 'text-[#E8EDF2]'}`}>
+                          {item.label}
+                        </Text>
+                      </View>
+                      {statusFilter === item.key && (
+                        <Ionicons name="checkmark" size={14} color="#5B9BD5" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                  {gi < statusFilterGroups.length - 1 && (
+                    <View className="h-px bg-[#1E3F5E]/30 mx-2" />
+                  )}
+                </View>
               ))}
             </View>
           )}
+        </View>
+
+        {/* Sort + count */}
+        <View className="flex-row items-center gap-3">
+          <Text className="text-[10px] text-[#8FAABE]/50">
+            {total} order{total !== 1 ? 's' : ''}
+          </Text>
+          <View className="relative">
+            <TouchableOpacity
+              className="flex-row items-center gap-1 px-2.5 py-2 bg-[#1A3755] rounded-lg"
+              onPress={() => { setShowSortMenu(!showSortMenu); setShowStatusDropdown(false); }}
+            >
+              <Ionicons name="swap-vertical-outline" size={14} color="#8FAABE" />
+              <Text className="text-xs font-medium text-[#E8EDF2]">
+                {sortOptions.find((s) => s.value === sortBy)?.label}
+              </Text>
+            </TouchableOpacity>
+            {showSortMenu && (
+              <View
+                className="absolute right-0 top-10 bg-[#162F4D] rounded-xl border border-[#1E3F5E]/60 shadow-lg z-50 w-36 overflow-hidden"
+                style={{ elevation: 8 }}
+              >
+                {sortOptions.map((opt) => (
+                  <TouchableOpacity
+                    key={opt.value}
+                    className={`px-4 py-2.5 border-b border-[#1E3F5E]/30 ${
+                      sortBy === opt.value ? 'bg-[#5B9BD5]/10' : ''
+                    }`}
+                    onPress={() => changeSort(opt.value)}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        sortBy === opt.value ? 'text-[#5B9BD5] font-semibold' : 'text-[#E8EDF2]'
+                      }`}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
       </View>
 
       {/* Order list */}
       {displayOrders.length === 0 && !loading ? (
         <View className="flex-1 items-center justify-center px-4">
-          <Ionicons name="receipt-outline" size={48} color="#d1d5db" />
-          <Text className="text-gray-500 mt-3 text-center">
+          <Ionicons name="receipt-outline" size={48} color="#8FAABE33" />
+          <Text className="text-[#8FAABE] mt-3 text-center">
             {search ? 'No orders match your search' : 'No orders found'}
           </Text>
-          <Text className="text-gray-400 text-sm mt-1 text-center">
+          <Text className="text-[#8FAABE]/50 text-sm mt-1 text-center">
             {search ? 'Try adjusting your search' : 'Your order history will appear here'}
           </Text>
         </View>
@@ -248,32 +310,32 @@ export default function OrdersScreen() {
         <FlatList
           data={displayOrders}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 12, paddingBottom: 20 }}
+          contentContainerStyle={{ padding: 12, paddingBottom: insets.bottom + 20 }}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor="#5B9BD5" colors={['#5B9BD5']} />
           }
           ListFooterComponent={() =>
             totalPages > 1 ? (
-              <View className="flex-row items-center justify-between bg-white mx-0 mt-2 px-4 py-3 rounded-xl border border-gray-100">
+              <View className="flex-row items-center justify-between bg-[#162F4D] mx-0 mt-2 px-4 py-3 rounded-xl border border-[#1E3F5E]/60">
                 <TouchableOpacity
                   onPress={() => goToPage(page - 1)}
                   disabled={page === 1}
                   className={page === 1 ? 'opacity-30' : 'opacity-100'}
                 >
-                  <Text className="text-sm font-medium text-blue-500">← Prev</Text>
+                  <Text className="text-sm font-medium text-[#5B9BD5]">← Prev</Text>
                 </TouchableOpacity>
                 <View className="items-center">
-                  <Text className="text-sm font-medium text-gray-700">
+                  <Text className="text-sm font-medium text-[#E8EDF2]">
                     Page {page} of {totalPages}
                   </Text>
-                  <Text className="text-xs text-gray-400">{total} total</Text>
+                  <Text className="text-xs text-[#8FAABE]/50">{total} total</Text>
                 </View>
                 <TouchableOpacity
                   onPress={() => goToPage(page + 1)}
                   disabled={page >= totalPages}
                   className={page >= totalPages ? 'opacity-30' : 'opacity-100'}
                 >
-                  <Text className="text-sm font-medium text-blue-500">Next →</Text>
+                  <Text className="text-sm font-medium text-[#5B9BD5]">Next →</Text>
                 </TouchableOpacity>
               </View>
             ) : null
@@ -284,12 +346,12 @@ export default function OrdersScreen() {
 
             return (
               <TouchableOpacity
-                className="bg-white rounded-xl p-4 mb-2.5 border border-gray-100"
+                className="bg-[#162F4D] rounded-xl p-4 mb-2.5 border border-[#1E3F5E]/60"
                 onPress={() => setSelectedOrder(item)}
                 activeOpacity={0.7}
               >
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-sm font-bold text-gray-800">
+                  <Text className="text-sm font-bold text-[#E8EDF2]">
                     {item.order_number}
                   </Text>
                   <View className={`px-2.5 py-1 rounded-full ${style.bg}`}>
@@ -300,20 +362,20 @@ export default function OrdersScreen() {
                 </View>
                 {item.stores?.name && (
                   <View className="flex-row items-center gap-1.5 mb-1.5">
-                    <Ionicons name="storefront-outline" size={12} color="#9ca3af" />
-                    <Text className="text-xs text-gray-500">{item.stores.name}</Text>
+                    <Ionicons name="storefront-outline" size={12} color="#8FAABE" />
+                    <Text className="text-xs text-[#8FAABE]">{item.stores.name}</Text>
                   </View>
                 )}
                 {/* Items preview */}
                 {item.order_items && item.order_items.length > 0 && (
                   <View className="mb-2">
                     {item.order_items.slice(0, 2).map((oi) => (
-                      <Text key={oi.id} className="text-xs text-gray-400" numberOfLines={1}>
+                      <Text key={oi.id} className="text-xs text-[#8FAABE]/50" numberOfLines={1}>
                         {oi.quantity}x {oi.product_name}
                       </Text>
                     ))}
                     {item.order_items.length > 2 && (
-                      <Text className="text-xs text-gray-400">
+                      <Text className="text-xs text-[#8FAABE]/50">
                         +{item.order_items.length - 2} more
                       </Text>
                     )}
@@ -321,14 +383,14 @@ export default function OrdersScreen() {
                 )}
                 <View className="flex-row items-center justify-between">
                   <View>
-                    <Text className="text-xs text-gray-400">
+                    <Text className="text-xs text-[#8FAABE]/50">
                       {formatDate(item.created_at)}
                     </Text>
-                    <Text className="text-xs text-gray-400 mt-0.5">
+                    <Text className="text-xs text-[#8FAABE]/50 mt-0.5">
                       {itemCount} item{itemCount !== 1 ? 's' : ''}
                     </Text>
                   </View>
-                  <Text className="text-base font-bold text-blue-600">
+                  <Text className="text-base font-bold text-[#5B9BD5]">
                     {formatCurrency(item.total_amount)}
                   </Text>
                 </View>
@@ -340,131 +402,133 @@ export default function OrdersScreen() {
 
       {/* Loading overlay for page changes */}
       {loading && orders.length > 0 && (
-        <View className="absolute inset-0 bg-white/60 items-center justify-center">
-          <ActivityIndicator size="large" color="#3b82f6" />
+        <View className="absolute inset-0 bg-[#0D1F33]/60 items-center justify-center">
+          <ActivityIndicator size="large" color="#5B9BD5" />
         </View>
       )}
 
-      {/* Order Detail Modal - Center positioned */}
+      {/* Order Detail Modal - Full Viewport */}
       <Modal
         visible={!!selectedOrder}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setSelectedOrder(null)}
       >
-        <TouchableOpacity
-          className="flex-1 bg-black/50 items-center justify-center px-4"
-          activeOpacity={1}
-          onPress={() => setSelectedOrder(null)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View className="bg-white rounded-2xl w-full max-h-[80%]" style={{ maxWidth: 420, width: '100%' }}>
-              {selectedOrder && (
-                <ScrollView
-                  showsVerticalScrollIndicator={false}
-                  contentContainerStyle={{ padding: 20 }}
-                >
-                  {/* Header */}
-                  <View className="flex-row items-center justify-between mb-4">
-                    <Text className="text-lg font-bold text-gray-800">
-                      {selectedOrder.order_number}
+        <View className="flex-1 bg-[#0D1F33]" style={{ paddingTop: insets.top }}>
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-[#1E3F5E]/60">
+            <TouchableOpacity onPress={() => setSelectedOrder(null)} className="p-1">
+              <Ionicons name="close" size={24} color="#E8EDF2" />
+            </TouchableOpacity>
+            <Text className="text-base font-bold text-[#E8EDF2]">
+              {selectedOrder?.order_number || 'Order Details'}
+            </Text>
+            <View style={{ width: 32 }} />
+          </View>
+
+          {selectedOrder && (
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 24 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* Status badge */}
+              <View className="items-center mb-6">
+                <View className={`px-4 py-1.5 rounded-full ${getStatusStyle(selectedOrder.status).bg}`}>
+                  <Text className={`text-sm font-semibold capitalize ${getStatusStyle(selectedOrder.status).text}`}>
+                    {selectedOrder.status}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Meta */}
+              <View className="bg-[#162F4D] rounded-xl p-4 mb-4 border border-[#1E3F5E]/60">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Ionicons name="calendar-outline" size={14} color="#8FAABE" />
+                  <Text className="text-sm text-[#8FAABE]">
+                    {formatDate(selectedOrder.created_at)}
+                  </Text>
+                </View>
+                {selectedOrder.stores?.name && (
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="storefront-outline" size={14} color="#8FAABE" />
+                    <Text className="text-sm text-[#8FAABE]">
+                      {selectedOrder.stores.name}
                     </Text>
-                    <View className="flex-row items-center gap-2">
-                      <View className={`px-3 py-1 rounded-full ${getStatusStyle(selectedOrder.status).bg}`}>
-                        <Text className={`text-xs font-medium capitalize ${getStatusStyle(selectedOrder.status).text}`}>
-                          {selectedOrder.status}
+                  </View>
+                )}
+              </View>
+
+              {/* Items */}
+              <View className="mb-4">
+                <Text className="text-[10px] font-bold text-[#8FAABE]/50 uppercase tracking-wider mb-3">
+                  Items ({selectedOrder.order_items?.length || 0})
+                </Text>
+                <View className="bg-[#162F4D] rounded-xl border border-[#1E3F5E]/60 overflow-hidden">
+                  {selectedOrder.order_items?.map((item, index) => (
+                    <View
+                      key={item.id}
+                      className={`flex-row items-center justify-between px-4 py-3 ${
+                        index < (selectedOrder.order_items?.length || 0) - 1 ? 'border-b border-[#1E3F5E]/30' : ''
+                      }`}
+                    >
+                      <View className="flex-1 mr-3">
+                        <Text className="text-sm text-[#E8EDF2]">{item.product_name}</Text>
+                        <Text className="text-xs text-[#8FAABE]/50">
+                          {item.quantity} × {formatCurrency(item.unit_price)}
                         </Text>
                       </View>
-                      <TouchableOpacity onPress={() => setSelectedOrder(null)}>
-                        <Ionicons name="close" size={22} color="#9ca3af" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-
-                  {/* Meta */}
-                  <View className="bg-gray-50 rounded-xl p-3 mb-4">
-                    <View className="flex-row items-center gap-2 mb-1.5">
-                      <Ionicons name="calendar-outline" size={14} color="#6b7280" />
-                      <Text className="text-sm text-gray-600">
-                        {formatDate(selectedOrder.created_at)}
+                      <Text className="text-sm font-semibold text-[#E8EDF2]">
+                        {formatCurrency(item.line_total)}
                       </Text>
                     </View>
-                    {selectedOrder.stores?.name && (
-                      <View className="flex-row items-center gap-2">
-                        <Ionicons name="storefront-outline" size={14} color="#6b7280" />
-                        <Text className="text-sm text-gray-600">
-                          {selectedOrder.stores.name}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {/* Items */}
-                  <View className="mb-4">
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">
-                      Items ({selectedOrder.order_items?.length || 0})
-                    </Text>
-                    {selectedOrder.order_items?.map((item) => (
-                      <View key={item.id} className="flex-row items-center justify-between py-2.5 border-b border-gray-100">
-                        <View className="flex-1 mr-3">
-                          <Text className="text-sm text-gray-800">{item.product_name}</Text>
-                          <Text className="text-xs text-gray-400">
-                            {item.quantity} × {formatCurrency(item.unit_price)}
-                          </Text>
-                        </View>
-                        <Text className="text-sm font-semibold text-gray-800">
-                          {formatCurrency(item.line_total)}
-                        </Text>
-                      </View>
-                    ))}
-                    {(!selectedOrder.order_items || selectedOrder.order_items.length === 0) && (
-                      <Text className="text-xs text-gray-400 py-2">No items recorded</Text>
-                    )}
-                  </View>
-
-                  {/* Summary */}
-                  <View className="bg-blue-50 rounded-xl p-3 mb-4">
-                    <View className="flex-row items-center justify-between mb-1">
-                      <Text className="text-sm text-gray-600">Subtotal</Text>
-                      <Text className="text-sm text-gray-700">
-                        {formatCurrency(selectedOrder.subtotal)}
-                      </Text>
-                    </View>
-                    {selectedOrder.tax_amount > 0 && (
-                      <View className="flex-row items-center justify-between mb-1">
-                        <Text className="text-sm text-gray-600">Tax</Text>
-                        <Text className="text-sm text-gray-700">
-                          {formatCurrency(selectedOrder.tax_amount)}
-                        </Text>
-                      </View>
-                    )}
-                    <View className="flex-row items-center justify-between pt-2 border-t border-blue-200">
-                      <Text className="text-base font-bold text-gray-800">Total</Text>
-                      <Text className="text-lg font-bold text-blue-600">
-                        {formatCurrency(selectedOrder.total_amount)}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {selectedOrder.notes && (
-                    <View className="mb-4 bg-gray-50 rounded-xl p-3">
-                      <Text className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1">Notes</Text>
-                      <Text className="text-sm text-gray-600">{selectedOrder.notes}</Text>
-                    </View>
+                  ))}
+                  {(!selectedOrder.order_items || selectedOrder.order_items.length === 0) && (
+                    <Text className="text-xs text-[#8FAABE]/50 py-4 text-center">No items recorded</Text>
                   )}
+                </View>
+              </View>
 
-                  {/* Close button */}
-                  <TouchableOpacity
-                    className="bg-gray-100 rounded-xl py-3 items-center"
-                    onPress={() => setSelectedOrder(null)}
-                  >
-                    <Text className="text-gray-700 font-semibold">Close</Text>
-                  </TouchableOpacity>
-                </ScrollView>
+              {/* Summary */}
+              <View className="bg-[#5B9BD5]/10 rounded-xl p-4 mb-4 border border-[#5B9BD5]/20">
+                <View className="flex-row items-center justify-between mb-1.5">
+                  <Text className="text-sm text-[#8FAABE]">Subtotal</Text>
+                  <Text className="text-sm text-[#E8EDF2]">
+                    {formatCurrency(selectedOrder.subtotal)}
+                  </Text>
+                </View>
+                {selectedOrder.tax_amount > 0 && (
+                  <View className="flex-row items-center justify-between mb-1.5">
+                    <Text className="text-sm text-[#8FAABE]">Tax</Text>
+                    <Text className="text-sm text-[#E8EDF2]">
+                      {formatCurrency(selectedOrder.tax_amount)}
+                    </Text>
+                  </View>
+                )}
+                <View className="flex-row items-center justify-between pt-2 border-t border-[#5B9BD5]/20">
+                  <Text className="text-base font-bold text-[#E8EDF2]">Total</Text>
+                  <Text className="text-lg font-bold text-[#5B9BD5]">
+                    {formatCurrency(selectedOrder.total_amount)}
+                  </Text>
+                </View>
+              </View>
+
+              {selectedOrder.notes && (
+                <View className="mb-4 bg-[#162F4D] rounded-xl p-4 border border-[#1E3F5E]/60">
+                  <Text className="text-[10px] font-bold text-[#8FAABE]/50 uppercase tracking-wider mb-2">Notes</Text>
+                  <Text className="text-sm text-[#8FAABE]">{selectedOrder.notes}</Text>
+                </View>
               )}
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+
+              {/* Close button */}
+              <TouchableOpacity
+                className="bg-[#1A3755] rounded-xl py-4 items-center"
+                onPress={() => setSelectedOrder(null)}
+              >
+                <Text className="text-[#8FAABE] font-semibold">Close</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          )}
+        </View>
       </Modal>
     </View>
   );

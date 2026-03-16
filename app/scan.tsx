@@ -9,11 +9,13 @@ import {
 import { CameraView, Camera } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
 
 export default function ScanScreen() {
   const { activate, isAuthenticated } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const isTablet = width >= 768;
 
@@ -71,59 +73,59 @@ export default function ScanScreen() {
 
   if (hasPermission === null) {
     return (
-      <View className="flex-1 bg-white items-center justify-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
+      <View className="flex-1 bg-[#0D1F33] items-center justify-center">
+        <ActivityIndicator size="large" color="#5B9BD5" />
       </View>
     );
   }
 
   if (!hasPermission) {
     return (
-      <View className="flex-1 bg-white items-center justify-center p-8">
-        <Ionicons name="camera-outline" size={48} color="#9ca3af" />
-        <Text className="text-gray-600 text-center mt-4 mb-4">
+      <View className="flex-1 bg-[#0D1F33] items-center justify-center p-8">
+        <Ionicons name="camera-outline" size={48} color="#8FAABE" />
+        <Text className="text-[#8FAABE] text-center mt-4 mb-4">
           Camera permission is required to scan QR codes
         </Text>
         <TouchableOpacity
-          className="bg-blue-500 rounded-lg px-6 py-3 mb-4"
+          className="bg-[#5B9BD5] rounded-lg px-6 py-3 mb-4"
           onPress={handleRequestPermission}
         >
           <Text className="text-white font-semibold">Grant Permission</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text className="text-blue-500 font-medium">Go Back</Text>
+          <Text className="text-[#5B9BD5] font-medium">Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-[#0D1F33]">
       {/* Header */}
-      <View className="flex-row items-center px-4 pt-14 pb-4">
+      <View className="flex-row items-center px-4 pb-4" style={{ paddingTop: insets.top + 12 }}>
         <TouchableOpacity
           onPress={() => router.back()}
           className="p-2 -ml-2"
         >
-          <Ionicons name="arrow-back" size={24} color="#374151" />
+          <Ionicons name="arrow-back" size={24} color="#E8EDF2" />
         </TouchableOpacity>
-        <Text className="text-lg font-semibold text-gray-800 ml-2">
+        <Text className="text-lg font-semibold text-[#E8EDF2] ml-2">
           Scan QR Code
         </Text>
       </View>
 
       {/* Error */}
       {error ? (
-        <View className="bg-red-50 border border-red-200 rounded-lg p-3 mx-4 mb-4">
-          <Text className="text-red-600 text-sm text-center">{error}</Text>
+        <View className="bg-[#E06C75]/10 border border-[#E06C75]/30 rounded-lg p-3 mx-4 mb-4">
+          <Text className="text-[#E06C75] text-sm text-center">{error}</Text>
         </View>
       ) : null}
 
       {/* Loading overlay */}
       {loading ? (
-        <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mx-4 mb-4 flex-row items-center justify-center">
-          <ActivityIndicator size="small" color="#3b82f6" />
-          <Text className="text-blue-600 text-sm ml-2">Activating...</Text>
+        <View className="bg-[#5B9BD5]/10 border border-[#5B9BD5]/30 rounded-lg p-3 mx-4 mb-4 flex-row items-center justify-center">
+          <ActivityIndicator size="small" color="#5B9BD5" />
+          <Text className="text-[#5B9BD5] text-sm ml-2">Activating...</Text>
         </View>
       ) : null}
 
@@ -150,30 +152,30 @@ export default function ScanScreen() {
           </View>
         </View>
 
-        <Text className="text-gray-500 text-sm text-center mt-4 px-4">
+        <Text className="text-[#8FAABE] text-sm text-center mt-4 px-4">
           Point your camera at the QR code provided by your administrator
         </Text>
 
         {scanned && !loading && (
           <TouchableOpacity
-            className="mx-4 mt-4 items-center py-3 bg-gray-100 rounded-lg"
+            className="mx-4 mt-4 items-center py-3 bg-[#1A3755] rounded-lg"
             onPress={() => {
               setScanned(false);
               setError('');
             }}
           >
-            <Text className="text-blue-500 font-medium">Tap to scan again</Text>
+            <Text className="text-[#5B9BD5] font-medium">Tap to scan again</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Bottom action */}
-      <View className="px-4 pb-8">
+      <View className="px-4" style={{ paddingBottom: insets.bottom + 16 }}>
         <TouchableOpacity
           className="items-center py-3"
           onPress={() => router.back()}
         >
-          <Text className="text-gray-500 font-medium">Enter code manually instead</Text>
+          <Text className="text-[#8FAABE] font-medium">Enter code manually instead</Text>
         </TouchableOpacity>
       </View>
     </View>
