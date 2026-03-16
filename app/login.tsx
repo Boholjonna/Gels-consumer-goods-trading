@@ -8,6 +8,7 @@ import {
   Platform,
   useWindowDimensions,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -74,9 +75,16 @@ export default function ActivationScreen() {
           }
         >
           {/* Header */}
-          <Text className="text-3xl font-bold text-[#5B9BD5] text-center mb-2">
-            GELS
-          </Text>
+          <View className="items-center mb-2">
+            <Image
+              source={require('../assets/logo.png')}
+              style={{ width: 72, height: 72, marginBottom: 12 }}
+              resizeMode="contain"
+            />
+            <Text className="text-3xl font-bold text-[#5B9BD5] text-center">
+              GELS
+            </Text>
+          </View>
           <Text className="text-base text-[#8FAABE] text-center mb-8">
             Activate your collector account
           </Text>

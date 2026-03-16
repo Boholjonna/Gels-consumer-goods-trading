@@ -77,7 +77,7 @@ export default function CartScreen() {
       clearDraft();
       setSelectedStore(null);
       setNotes('');
-      router.replace('/(collector)/confirmation');
+      router.replace({ pathname: '/(collector)/confirmation', params: { orderNumber: result.order_number } });
     }
   }
 

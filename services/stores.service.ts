@@ -35,7 +35,7 @@ export async function updateStore(storeId: string, updates: { name?: string }): 
 export async function deleteStore(storeId: string): Promise<void> {
   const { error } = await supabase
     .from('stores')
-    .delete()
+    .update({ is_active: false })
     .eq('id', storeId);
   if (error) throw new Error(error.message);
 }
