@@ -24,6 +24,28 @@ export interface CreateOrderResponse {
   order_number: string;
 }
 
+export interface UnsyncedOrder {
+  id: string;
+  tempOrderNumber: string;
+  storeId: string;
+  storeName: string;
+  items: {
+    product_id: string;
+    product_name: string;
+    unit_price: number;
+    quantity: number;
+    stock_quantity: number;
+    line_total: number;
+  }[];
+  notes?: string;
+  subtotal: number;
+  itemCount: number;
+  createdAt: string;
+  status: 'unsynced';
+  syncError?: string;
+  syncAttempts: number;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
