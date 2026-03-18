@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import { downloadAllDataForOffline } from '@/lib/offline-cache';
 import type { AuthUser } from '@/types';
 
 interface AuthContextType {
@@ -89,6 +90,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           is_active: data.is_active,
         });
         setIsLoading(false);
+        // Download all data for offline use after successful login
+        downloadAllDataForOffline().catch(() => {});
         return;
       } catch (error) {
         console.error(`fetchProfile attempt ${i + 1} failed:`, error);
@@ -142,27 +145,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // Mark device as connected after successful auth
     if (currentSession && user_id) {
-      await supabase
-        .from('profiles')
-        .update({ device_connected_at: new Date().toISOString() })
-        .eq('id', user_id)
-        .catch(() => {});
+      try {
+        await supabase
+          .from('profiles')
+          .update({ device_connected_at: new Date().toISOString() })
+          .eq('id', user_id);
+      } catch {}
     }
   }
 
   async function signOut() {
-    // Mark device as disconnected before signing out
-    if (session?.user?.id) {
-      await supabase
-        .from('profiles')
-        .update({ device_connected_at: null, last_seen_at: null })
-        .eq('id', session.user.id)
-        .catch(() => {});
-    }
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    // Capture session before clearing state
+    const userId = session?.user?.id;
+
+    // Clear local state immediately so the app reacts right away
     setUser(null);
     setSession(null);
+
+    // Mark device as disconnected before signing out (best-effort)
+    if (userId) {
+      try {
+        await supabase
+          .from('profiles')
+          .update({ device_connected_at: null, last_seen_at: null })
+          .eq('id', userId);
+      } catch {}
+    }
+    // Sign out from supabase (best-effort — user is already cleared above)
+    try {
+      await supabase.auth.signOut();
+    } catch {}
   }
 
   return (
