@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getStores } from '@/services/stores.service';
+import { getCachedStores, cacheStores } from '@/lib/offline-cache';
 import type { Store } from '@/types';
 
 export function useStores() {
@@ -13,8 +14,15 @@ export function useStores() {
     try {
       const data = await getStores();
       setStores(data);
-    } catch (err: any) {
-      setError(err.message || 'Failed to load stores');
+      cacheStores(data);
+    } catch {
+      const cached = await getCachedStores();
+      if (cached && cached.length > 0) {
+        setStores(cached);
+        setError(null);
+      } else {
+        setError('No internet connection and no cached stores available');
+      }
     } finally {
       setLoading(false);
     }

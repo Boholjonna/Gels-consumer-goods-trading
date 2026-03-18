@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getNotifications, markAsRead, markAllAsRead } from '@/services/notifications.service';
+import { getCachedNotifications, cacheNotifications } from '@/lib/offline-cache';
 import type { Notification } from '@/types';
 
 export function useNotifications() {
@@ -14,8 +15,10 @@ export function useNotifications() {
     try {
       const data = await getNotifications();
       setNotifications(data);
+      cacheNotifications(data);
     } catch {
-      // silently fail — notifications are non-critical
+      const cached = await getCachedNotifications();
+      if (cached && cached.length > 0) setNotifications(cached);
     } finally {
       setLoading(false);
     }
