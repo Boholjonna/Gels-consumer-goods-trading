@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
-  Text,
   FlatList,
   TouchableOpacity,
   Pressable,
@@ -9,13 +8,16 @@ import {
   Modal,
   ScrollView,
   ActivityIndicator,
-  TextInput,
 } from 'react-native';
+import { Text, TextInput } from '@/components/ScaledText';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getOrders } from '@/services/orders.service';
 import { formatCurrency, formatDate } from '@/lib/formatters';
+import { useOfflineSync } from '@/lib/offline-sync';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { getCachedOrders, cacheOrders } from '@/lib/offline-cache';
 import type { Order, OrderFilters } from '@/types';
 
 const statusColors: Record<string, { bg: string; text: string }> = {
@@ -24,6 +26,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   processing: { bg: 'bg-[#C678DD]/10', text: 'text-[#C678DD]' },
   completed: { bg: 'bg-[#98C379]/10', text: 'text-[#98C379]' },
   cancelled: { bg: 'bg-[#E06C75]/10', text: 'text-[#E06C75]' },
+  unsynced: { bg: 'bg-[#E06C75]/10', text: 'text-[#E06C75]' },
 };
 
 const statusFilterGroups = [
@@ -42,6 +45,10 @@ const statusFilterGroups = [
       { key: 'completed', label: 'Completed' },
       { key: 'cancelled', label: 'Cancelled' },
     ],
+  },
+  {
+    label: 'Local',
+    items: [{ key: 'unsynced', label: 'Unsynced' }],
   },
 ];
 
@@ -87,6 +94,8 @@ const PAGE_SIZE = 20;
 
 export default function OrdersScreen() {
   const insets = useSafeAreaInsets();
+  const { unsyncedOrders, unsyncedCount, isSyncing, syncNow } = useOfflineSync();
+  const isConnected = useNetworkStatus();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -105,6 +114,7 @@ export default function OrdersScreen() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [calYear, setCalYear] = useState(new Date().getFullYear());
   const [calMonth, setCalMonth] = useState(new Date().getMonth());
+  const [unsyncedExpanded, setUnsyncedExpanded] = useState(true);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
@@ -126,8 +136,28 @@ export default function OrdersScreen() {
       const result = await getOrders(filters);
       setOrders(result.data);
       setTotal(result.total);
+      // Cache the latest unfiltered page-1 fetch for offline use
+      if (currentPage === 1 && currentStatus === 'all' && !currentDate) {
+        cacheOrders(result.data);
+      }
     } catch {
-      setError('Failed to load orders');
+      // Fall back to locally cached orders
+      const cached = await getCachedOrders();
+      if (cached && cached.length > 0) {
+        const currentStatus = overrides?.status ?? statusFilter;
+        const currentDate = overrides !== undefined && 'date' in overrides ? overrides.date : selectedDate;
+        let filtered = cached;
+        if (currentStatus !== 'all') {
+          filtered = filtered.filter((o) => o.status === currentStatus);
+        }
+        if (currentDate) {
+          filtered = filtered.filter((o) => o.created_at.startsWith(currentDate));
+        }
+        setOrders(filtered);
+        setTotal(filtered.length);
+      } else {
+        setError('Failed to load orders');
+      }
     } finally {
       if (!silent) setLoading(false);
     }
@@ -147,7 +177,9 @@ export default function OrdersScreen() {
     setStatusFilter(status);
     setShowStatusDropdown(false);
     setPage(1);
-    fetchOrders(false, { p: 1, status });
+    if (status !== 'unsynced') {
+      fetchOrders(false, { p: 1, status });
+    }
   }
 
   function changeSort(sort: OrderFilters['sort_by']) {
@@ -303,6 +335,7 @@ export default function OrdersScreen() {
         <View className="flex-row items-center gap-3">
           <Text className="text-[10px] text-[#8FAABE]/50">
             {total} order{total !== 1 ? 's' : ''}
+            {unsyncedCount > 0 && ` · ${unsyncedCount} unsynced`}
           </Text>
           <View className="relative">
             <TouchableOpacity
@@ -420,8 +453,101 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      {/* Order list */}
-      {displayOrders.length === 0 && !loading ? (
+      {/* Unsynced orders section */}
+      {(statusFilter === 'all' || statusFilter === 'unsynced') && unsyncedOrders.length > 0 && (
+        <View className="px-3 pt-3 pb-1">
+          {/* Collapsible header */}
+          <TouchableOpacity
+            onPress={() => setUnsyncedExpanded((prev) => !prev)}
+            activeOpacity={0.7}
+            className="flex-row items-center justify-between bg-[#162F4D] border border-[#E06C75]/30 rounded-xl px-4 py-3 mb-2"
+          >
+            <View className="flex-row items-center gap-2">
+              <Ionicons name="cloud-upload-outline" size={15} color="#E06C75" />
+              <Text className="text-sm font-semibold text-[#E06C75]">Unsynced Orders</Text>
+              <View className="px-2 py-0.5 rounded-full bg-[#E06C75]/10">
+                <Text className="text-[10px] font-bold text-[#E06C75]">{unsyncedOrders.length}</Text>
+              </View>
+            </View>
+            <Ionicons
+              name={unsyncedExpanded ? 'chevron-up' : 'chevron-down'}
+              size={16}
+              color="#E06C75"
+            />
+          </TouchableOpacity>
+
+          {unsyncedExpanded && (
+            <>
+              {unsyncedOrders.map((order) => (
+                <View
+                  key={order.id}
+                  className="bg-[#162F4D] rounded-xl p-4 mb-2.5 border border-[#E06C75]/30"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="text-sm font-bold text-[#E8EDF2]">{order.tempOrderNumber}</Text>
+                    <View className="px-2.5 py-1 rounded-full bg-[#E06C75]/10">
+                      <Text className="text-xs font-medium text-[#E06C75]">Unsynced</Text>
+                    </View>
+                  </View>
+                  <View className="flex-row items-center gap-1.5 mb-1.5">
+                    <Ionicons name="storefront-outline" size={12} color="#8FAABE" />
+                    <Text className="text-xs text-[#8FAABE]">{order.storeName}</Text>
+                  </View>
+                  {order.items.slice(0, 2).map((oi) => (
+                    <Text key={oi.product_id} className="text-xs text-[#8FAABE]/50" numberOfLines={1}>
+                      {oi.quantity}x {oi.product_name}
+                    </Text>
+                  ))}
+                  {order.items.length > 2 && (
+                    <Text className="text-xs text-[#8FAABE]/50">+{order.items.length - 2} more</Text>
+                  )}
+                  {order.syncError ? (
+                    <View className="mt-2 bg-[#E06C75]/10 rounded-lg px-2.5 py-1.5">
+                      <Text className="text-[10px] text-[#E06C75]">Sync failed: {order.syncError}</Text>
+                    </View>
+                  ) : null}
+                  <View className="flex-row items-center justify-between mt-2">
+                    <Text className="text-xs text-[#8FAABE]/50">
+                      {new Date(order.createdAt).toLocaleString()}
+                    </Text>
+                    <Text className="text-base font-bold text-[#5B9BD5]">
+                      {formatCurrency(order.subtotal)}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+
+              {/* Sync button */}
+              <TouchableOpacity
+                onPress={syncNow}
+                disabled={isSyncing || !isConnected}
+                activeOpacity={0.8}
+                className={`flex-row items-center justify-center gap-2 py-3 rounded-xl mb-3 ${
+                  isSyncing || !isConnected ? 'bg-[#E06C75]/15' : 'bg-[#E06C75]'
+                }`}
+              >
+                {isSyncing ? (
+                  <ActivityIndicator size={14} color={!isConnected ? '#E06C75' : '#fff'} />
+                ) : (
+                  <Ionicons
+                    name="sync-outline"
+                    size={16}
+                    color={isSyncing || !isConnected ? '#E06C75' : '#fff'}
+                  />
+                )}
+                <Text className={`text-sm font-semibold ${isSyncing || !isConnected ? 'text-[#E06C75]' : 'text-white'}`}>
+                  {isSyncing ? 'Syncing...' : !isConnected ? 'No Internet' : 'Sync Now'}
+                </Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+      )}
+
+      {/* Order list — hidden when viewing unsynced-only filter */}
+      {statusFilter !== 'unsynced' && (
+        <>
+          {displayOrders.length === 0 && !loading ? (
         <View className="flex-1 items-center justify-center px-4">
           <Ionicons name="receipt-outline" size={48} color="#8FAABE33" />
           <Text className="text-[#8FAABE] mt-3 text-center">
@@ -523,6 +649,8 @@ export default function OrdersScreen() {
             );
           }}
         />
+      )}
+        </>
       )}
 
       {/* Loading overlay for page changes */}
