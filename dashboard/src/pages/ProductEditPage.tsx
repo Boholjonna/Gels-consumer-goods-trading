@@ -26,9 +26,43 @@ export function ProductEditPage() {
   const [sku, setSku] = useState('');
   const [price, setPrice] = useState('');
   const [stockQuantity, setStockQuantity] = useState('0');
+  const [cartonQty, setCartonQty] = useState('0');
+  const [cartonSize, setCartonSize] = useState('');
   const [isActive, setIsActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Auto-calculate cartons when quantity changes
+  function handleStockQuantityChange(value: string) {
+    setStockQuantity(value);
+    const qty = parseInt(value, 10) || 0;
+    const size = parseInt(cartonSize, 10) || 0;
+    if (size > 0) {
+      setCartonQty(Math.floor(qty / size).toString());
+    }
+  }
+
+  // Auto-calculate quantity when cartons change
+  function handleCartonQtyChange(value: string) {
+    setCartonQty(value);
+    const ctns = parseInt(value, 10) || 0;
+    const size = parseInt(cartonSize, 10) || 0;
+    if (size > 0) {
+      setStockQuantity((ctns * size).toString());
+    }
+  }
+
+  // Recalculate cartons when carton size changes
+  function handleCartonSizeChange(value: string) {
+    setCartonSize(value);
+    const qty = parseInt(stockQuantity, 10) || 0;
+    const size = parseInt(value, 10) || 0;
+    if (size > 0) {
+      setCartonQty(Math.floor(qty / size).toString());
+    } else {
+      setCartonQty('0');
+    }
+  }
 
   useEffect(() => {
     if (!id) return;
@@ -47,6 +81,11 @@ export function ProductEditPage() {
         setSku(p.sku || '');
         setPrice(p.price?.toString() || '');
         setStockQuantity(p.stock_quantity?.toString() || '0');
+        setCartonSize(p.carton_size?.toString() || '');
+        // Calculate carton qty from stock and carton size
+        if (p.carton_size && p.carton_size > 0) {
+          setCartonQty(Math.floor((p.stock_quantity || 0) / p.carton_size).toString());
+        }
         setIsActive(p.is_active);
       } catch {
         toast.error('Product not found');
@@ -84,6 +123,7 @@ export function ProductEditPage() {
       sku: sku.trim() || generateSku(name.trim()),
       price: parsedPrice,
       stock_quantity: parsedStock,
+      carton_size: cartonSize.trim() ? parseInt(cartonSize, 10) : null,
       is_active: isActive,
     };
 
@@ -174,8 +214,32 @@ export function ProductEditPage() {
               <input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" className={inputCls} />
             </div>
             <div>
-              <label className={labelCls}>Stock Qty</label>
-              <input type="number" min="0" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} className={inputCls} aria-label="Stock quantity" />
+              <label className={labelCls}>Pcs/Carton</label>
+              <input type="number" min="1" value={cartonSize} onChange={(e) => handleCartonSizeChange(e.target.value)} placeholder="e.g. 24" className={inputCls} aria-label="Pieces per carton" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelCls}>Stock Qty (pieces)</label>
+              <input type="number" min="0" value={stockQuantity} onChange={(e) => handleStockQuantityChange(e.target.value)} className={inputCls} aria-label="Stock quantity" />
+            </div>
+            <div>
+              <label className={labelCls}>Cartons</label>
+              <input
+                type="number"
+                min="0"
+                value={cartonQty}
+                onChange={(e) => handleCartonQtyChange(e.target.value)}
+                className={inputCls}
+                aria-label="Carton quantity"
+                disabled={!cartonSize || parseInt(cartonSize, 10) <= 0}
+              />
+              {cartonSize && parseInt(cartonSize, 10) > 0 && (
+                <p className="text-[10px] text-[#8FAABE]/50 mt-1">
+                  {cartonQty} cartons × {cartonSize} = {parseInt(cartonQty, 10) * parseInt(cartonSize, 10)} pcs
+                </p>
+              )}
             </div>
           </div>
 

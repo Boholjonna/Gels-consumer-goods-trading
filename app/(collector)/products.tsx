@@ -45,6 +45,7 @@ export default function ProductsScreen() {
   // Quantity modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [cartons, setCartons] = useState(0);
 
   function getCartQuantity(productId: string): number {
     const item = draftItems.find((i) => i.product_id === productId);
@@ -56,18 +57,25 @@ export default function ProductsScreen() {
     const currentInCart = getCartQuantity(product.id);
     setSelectedProduct(product);
     setQuantity(currentInCart > 0 ? currentInCart : 1);
+    setCartons(0);
   }
 
   function closeModal() {
     setSelectedProduct(null);
     setQuantity(1);
+    setCartons(0);
   }
 
   function handleAddToOrder() {
-    if (!selectedProduct || quantity <= 0) return;
+    if (!selectedProduct) return;
+    // Calculate total pieces: quantity (pieces) + cartons * carton_size
+    const cartonPieces = cartons * (selectedProduct.carton_size || 0);
+    const totalQuantity = quantity + cartonPieces;
+    if (totalQuantity <= 0) return;
+
     const currentInCart = getCartQuantity(selectedProduct.id);
     if (currentInCart > 0) {
-      updateQuantity(selectedProduct.id, quantity);
+      updateQuantity(selectedProduct.id, totalQuantity);
     } else {
       addItem(
         {
@@ -76,7 +84,7 @@ export default function ProductsScreen() {
           price: selectedProduct.price,
           stock_quantity: selectedProduct.stock_quantity,
         },
-        quantity
+        totalQuantity
       );
     }
     closeModal();
@@ -243,14 +251,14 @@ export default function ProductsScreen() {
                             {formatCurrency(item.price)}
                           </Text>
                         </View>
-                        <View className="items-end gap-1">
+                        <View className="items-end self-center">
                           {inCart > 0 ? (
-                            <View className="bg-[#5B9BD5] rounded-full w-7 h-7 items-center justify-center">
-                              <Text className="text-white text-xs font-bold">{inCart}</Text>
+                            <View className="bg-[#5B9BD5] rounded-full w-10 h-10 items-center justify-center">
+                              <Text className="text-white text-sm font-bold">{inCart}</Text>
                             </View>
                           ) : (
-                            <View className={`rounded-full w-7 h-7 items-center justify-center ${isOutOfStock ? 'bg-[#1A3755]' : 'bg-[#5B9BD5]/10'}`}>
-                              <Ionicons name="add" size={16} color={isOutOfStock ? '#8FAABE' : '#5B9BD5'} />
+                            <View className={`rounded-full w-10 h-10 items-center justify-center ${isOutOfStock ? 'bg-[#1A3755]' : 'bg-[#5B9BD5]/10'}`}>
+                              <Ionicons name="add" size={22} color={isOutOfStock ? '#8FAABE' : '#5B9BD5'} />
                             </View>
                           )}
                         </View>
@@ -357,7 +365,7 @@ export default function ProductsScreen() {
               <View className="flex-row items-center justify-between bg-[#1A3755] rounded-2xl px-4 py-3 mb-6">
                 <TouchableOpacity
                   className="w-12 h-12 rounded-xl bg-[#162F4D] border border-[#1E3F5E]/60 items-center justify-center"
-                  onPress={() => setQuantity((q) => Math.max(1, q - 1))}
+                  onPress={() => setQuantity((q) => Math.max(0, q - 1))}
                 >
                   <Ionicons name="remove" size={22} color="#E8EDF2" />
                 </TouchableOpacity>
@@ -391,23 +399,78 @@ export default function ProductsScreen() {
                 </TouchableOpacity>
               </View>
 
+              {/* Carton section - only show if product has carton_size */}
+              {selectedProduct.carton_size && selectedProduct.carton_size > 0 && (
+                <>
+                  <Text className="text-[10px] font-bold text-[#8FAABE]/50 uppercase tracking-wider mb-3">
+                    Carton
+                  </Text>
+                  <View className="flex-row items-center justify-between bg-[#1A3755] rounded-2xl px-4 py-3 mb-2">
+                    <TouchableOpacity
+                      className="w-12 h-12 rounded-xl bg-[#162F4D] border border-[#1E3F5E]/60 items-center justify-center"
+                      onPress={() => setCartons((c) => Math.max(0, c - 1))}
+                    >
+                      <Ionicons name="remove" size={22} color="#E8EDF2" />
+                    </TouchableOpacity>
+
+                    <TextInput
+                      className="text-3xl font-bold text-center text-[#E8EDF2]"
+                      style={{ minWidth: 72 }}
+                      value={cartons.toString()}
+                      onChangeText={(text) => {
+                        const num = parseInt(text, 10);
+                        if (!isNaN(num) && num >= 0) {
+                          setCartons(num);
+                        } else if (text === '') {
+                          setCartons(0);
+                        }
+                      }}
+                      keyboardType="number-pad"
+                      keyboardAppearance="dark"
+                      selectTextOnFocus
+                    />
+
+                    <TouchableOpacity
+                      className="w-12 h-12 rounded-xl bg-[#5B9BD5] items-center justify-center"
+                      onPress={() => setCartons((c) => c + 1)}
+                      activeOpacity={1}
+                    >
+                      <Ionicons name="add" size={22} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                  <Text className="text-xs text-[#8FAABE] mb-6">
+                    1 carton = {selectedProduct.carton_size} pcs
+                  </Text>
+                </>
+              )}
+
               {/* Subtotal row */}
               <View className="flex-row items-center justify-between bg-[#5B9BD5]/10 rounded-xl px-4 py-3 mb-6">
                 <Text className="text-sm text-[#5B9BD5] font-medium">Subtotal</Text>
-                <Text className="text-lg font-extrabold text-[#5B9BD5]">
-                  {formatCurrency(selectedProduct.price * quantity)}
-                </Text>
+                <View className="items-end">
+                  <Text className="text-lg font-extrabold text-[#5B9BD5]">
+                    {formatCurrency(
+                      selectedProduct.price * quantity +
+                      selectedProduct.price * cartons * (selectedProduct.carton_size || 0)
+                    )}
+                  </Text>
+                  {cartons > 0 && selectedProduct.carton_size && (
+                    <Text className="text-xs text-[#8FAABE]">
+                      {quantity} pcs + {cartons} ctn ({cartons * selectedProduct.carton_size} pcs)
+                    </Text>
+                  )}
+                </View>
               </View>
 
               {/* Add to Order button */}
               <TouchableOpacity
                 className={`rounded-xl py-4 flex-row items-center justify-center ${
-                  quantity > 0 ? 'bg-[#5B9BD5]' : 'bg-[#1A3755]'
+                  (quantity > 0 || cartons > 0) ? 'bg-[#5B9BD5]' : 'bg-[#1A3755]'
                 }`}
                 onPress={handleAddToOrder}
-                disabled={quantity <= 0}
+                disabled={quantity <= 0 && cartons <= 0}
               >
-                <Text className={`font-bold text-sm text-center ${quantity > 0 ? 'text-white' : 'text-[#8FAABE]/50'}`}>
+                <Text className={`font-bold text-sm text-center ${(quantity > 0 || cartons > 0) ? 'text-white' : 'text-[#8FAABE]/50'}`}>
                   {getCartQuantity(selectedProduct.id) > 0 ? 'Update Order' : 'Add to Order'}
                 </Text>
               </TouchableOpacity>
