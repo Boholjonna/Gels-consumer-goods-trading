@@ -432,7 +432,7 @@ export function Header() {
           )}
           <div className="flex items-center gap-2.5">
             <img src="/logo.png" alt="Gels" className="w-6 h-6 rounded-full object-cover" />
-            <span className="text-sm font-bold text-[#E8EDF2] tracking-tight hidden sm:inline">Gels Consumer Goods Trading</span>
+            <span className="text-sm font-bold text-[#E8EDF2] tracking-tight hidden sm:inline">GELS CONSUMER GOODS TRADING</span>
             <div className="h-4 w-px bg-[#1E3F5E]/60" />
             <span className="text-sm text-[#8FAABE]/70">{pageLabel}</span>
           </div>

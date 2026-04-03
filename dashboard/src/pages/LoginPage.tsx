@@ -93,7 +93,7 @@ export function LoginPage() {
             />
             <div>
               <h1 className="text-lg font-bold text-[#E8EDF2] leading-tight">
-                Gels Consumer Goods Trading
+                GELS CONSUMER GOODS TRADING
               </h1>
             </div>
           </div>
