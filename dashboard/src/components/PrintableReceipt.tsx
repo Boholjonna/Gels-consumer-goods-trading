@@ -374,15 +374,6 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
         </div>
         <div style={s.infoRow}>
           <span style={s.infoLabel}>TERMS: ________</span>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
-          <span style={{ whiteSpace: 'nowrap', fontSize: '7px', paddingBottom: '2px', fontWeight: 'bold' }}>By:</span>
-          <div style={{ flex: 1, borderBottom: '1px solid #000', minHeight: '16px' }}></div>
-          <div style={{ flex: 1, borderBottom: '1px solid #000', minHeight: '16px' }}></div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px', marginTop: '2px' }}>
-          <span style={{ whiteSpace: 'nowrap', fontSize: '7px', visibility: 'hidden' }}>By:</span>
-          <div style={{ flex: 1, textAlign: 'center', fontSize: '6px', fontWeight: 'bold' }}>Authorized Signature</div>
-          <div style={{ flex: 1, textAlign: 'center', fontSize: '6px', fontWeight: 'bold' }}>Customer's Signature Over Printed Name</div>
         </div>
 
         {/* Item Table */}
