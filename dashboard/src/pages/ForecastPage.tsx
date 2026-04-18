@@ -312,9 +312,10 @@ export function ForecastPage() {
                       <span className="text-[11px] text-[#E8EDF2] truncate flex-1 mr-2">{f.product_name}</span>
                       <span className="text-[10px] font-semibold text-[#E8EDF2] tabular-nums flex-shrink-0">{f.forecast_units} units</span>
                     </div>
-                    <div className="w-full h-1.5 bg-[#0D1F33] rounded-full">
-                      <div className="h-1.5 rounded-full bg-[#5B9BD5] transition-all duration-300" style={{ width: `${pct}%` }} />
-                    </div>
+                    <svg className="w-full h-1.5 block" viewBox="0 0 100 6" preserveAspectRatio="none" aria-hidden="true">
+                      <rect x="0" y="0" width="100" height="6" rx="3" fill="#0D1F33" />
+                      <rect x="0" y="0" width={Math.max(0, Math.min(100, pct))} height="6" rx="3" fill="#5B9BD5" />
+                    </svg>
                   </div>
                 );
               })}
@@ -507,7 +508,7 @@ export function ForecastPage() {
           <div className="bg-[#162F4D] rounded-lg max-w-lg w-full shadow-xl border border-[#1E3F5E]/60 max-h-[80vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#1E3F5E]/60 sticky top-0 bg-[#162F4D] z-10">
               <h3 className="text-sm font-bold text-[#E8EDF2]">How Demand Forecast Works</h3>
-              <button onClick={() => setShowHelp(false)} className="p-1 text-[#8FAABE]/50 hover:text-[#E8EDF2] rounded transition-colors"><X size={16} /></button>
+              <button onClick={() => setShowHelp(false)} className="p-1 text-[#8FAABE]/50 hover:text-[#E8EDF2] rounded transition-colors" aria-label="Close help" title="Close help"><X size={16} /></button>
             </div>
             <div className="px-5 py-4 space-y-4 text-xs text-[#E8EDF2]/80 leading-relaxed">
 

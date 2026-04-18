@@ -274,6 +274,8 @@ export function UsersPage() {
         <select
           value={connFilter}
           onChange={(e) => handleConnFilter(e.target.value as ConnFilter)}
+          aria-label="Filter collectors by connection status"
+          title="Filter collectors by connection status"
           className="text-xs bg-[#162F4D] border border-[#1E3F5E]/60 rounded-lg px-2 py-2 text-[#E8EDF2] focus:outline-none focus:ring-2 focus:ring-[#5B9BD5] cursor-pointer"
         >
           {connOptions.map((opt) => (
