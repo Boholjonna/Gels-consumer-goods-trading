@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { downloadAllDataForOffline } from '@/lib/offline-cache';
 import type { AuthUser } from '@/types';
+
+const AUTH_USER_CACHE_KEY = 'auth_cached_user';
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -89,6 +92,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: data.role,
           is_active: data.is_active,
         });
+        AsyncStorage.setItem(
+          AUTH_USER_CACHE_KEY,
+          JSON.stringify({
+            id: data.id,
+            email: data.email,
+            full_name: data.full_name,
+            role: data.role,
+            is_active: data.is_active,
+          } satisfies AuthUser)
+        ).catch(() => {});
         setIsLoading(false);
         // Download all data for offline use after successful login
         downloadAllDataForOffline().catch(() => {});
@@ -98,7 +111,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (i < retries - 1) {
           await new Promise((r) => setTimeout(r, 1000));
         } else {
-          // All retries exhausted - sign out to avoid stuck state
+          const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+          const isNetworkError =
+            message.includes('network request failed') ||
+            message.includes('network error') ||
+            message.includes('failed to fetch') ||
+            message.includes('fetch') ||
+            message.includes('timeout') ||
+            message.includes('timed out');
+
+          if (isNetworkError) {
+            const cachedRaw = await AsyncStorage.getItem(AUTH_USER_CACHE_KEY).catch(() => null);
+            if (cachedRaw) {
+              const cachedUser = JSON.parse(cachedRaw) as AuthUser;
+              if (cachedUser.id === userId && cachedUser.is_active) {
+                setUser(cachedUser);
+                setIsLoading(false);
+                return;
+              }
+            }
+
+            const { data: { session: currentSession } } = await supabase.auth.getSession();
+            if (currentSession?.user?.id === userId) {
+              setUser({
+                id: userId,
+                email: currentSession.user.email || '',
+                full_name:
+                  (typeof currentSession.user.user_metadata?.full_name === 'string' &&
+                    currentSession.user.user_metadata.full_name) ||
+                  currentSession.user.email ||
+                  'Collector',
+                role: 'collector',
+                is_active: true,
+              });
+              setIsLoading(false);
+              return;
+            }
+          }
+
+          // Non-network failures keep previous safety behavior
           await supabase.auth.signOut().catch(() => {});
           setUser(null);
           setSession(null);
@@ -161,6 +212,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Clear local state immediately so the app reacts right away
     setUser(null);
     setSession(null);
+    AsyncStorage.removeItem(AUTH_USER_CACHE_KEY).catch(() => {});
 
     // Mark device as disconnected before signing out (best-effort)
     if (userId) {

@@ -26,6 +26,9 @@ export default function ProductsScreen() {
     error,
     search,
     setSearch,
+    selectedCategory,
+    setSelectedCategory,
+    categories,
     page,
     totalPages,
     total,
@@ -44,7 +47,7 @@ export default function ProductsScreen() {
 
   // Quantity modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [cartons, setCartons] = useState(0);
 
   function getCartQuantity(productId: string): number {
@@ -56,13 +59,13 @@ export default function ProductsScreen() {
     if (product.stock_quantity <= 0) return;
     const currentInCart = getCartQuantity(product.id);
     setSelectedProduct(product);
-    setQuantity(currentInCart > 0 ? currentInCart : 1);
+    setQuantity(currentInCart > 0 ? currentInCart : 0);
     setCartons(0);
   }
 
   function closeModal() {
     setSelectedProduct(null);
-    setQuantity(1);
+    setQuantity(0);
     setCartons(0);
   }
 
@@ -168,6 +171,32 @@ export default function ProductsScreen() {
             </TouchableOpacity>
           )}
         </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="mt-3"
+          contentContainerStyle={{ paddingRight: 12 }}
+        >
+          {categories.map((category) => {
+            const isActive = selectedCategory === category;
+            return (
+              <TouchableOpacity
+                key={category}
+                onPress={() => setSelectedCategory(category)}
+                className={`mr-2 px-3 py-1.5 rounded-full border ${
+                  isActive
+                    ? 'bg-[#5B9BD5] border-[#5B9BD5]'
+                    : 'bg-[#162F4D] border-[#1E3F5E]/60'
+                }`}
+              >
+                <Text className={`text-xs font-semibold ${isActive ? 'text-white' : 'text-[#8FAABE]'}`}>
+                  {category}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
       </View>
 
       {/* Product Feed */}
