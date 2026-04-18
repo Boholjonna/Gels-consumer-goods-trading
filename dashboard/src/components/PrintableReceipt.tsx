@@ -172,7 +172,7 @@ interface OrderItemWithCarton {
   carton_size?: number | null;
 }
 
-const ITEMS_PER_PAGE = 10;
+const ITEMS_PER_PAGE = 15;
 
 export function PrintableReceipt({ order, companyOverride }: PrintableReceiptProps) {
   const { profile } = useCompanyProfile();
@@ -336,6 +336,9 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
         id={pageNum === 0 ? "printable-receipt" : undefined} 
         style={{ 
           ...s.root, 
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 'calc(100vh - 4mm)',
           pageBreakAfter: isLastPage ? 'auto' : 'always',
           pageBreakInside: 'avoid',
           breakAfter: isLastPage ? 'auto' : 'page',
@@ -424,9 +427,12 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
 
         {/* Page indicator (not on last page) */}
         {!isLastPage && (
-          <div style={{ textAlign: 'center', fontSize: '7px', marginTop: '4px', color: '#666' }}>
-            Page {pageNum + 1} of {totalPages} - Continued...
-          </div>
+          <>
+            <div style={{ flex: 1 }}></div>
+            <div style={{ textAlign: 'center', fontSize: '7px', marginTop: '4px', color: '#666' }}>
+              Page {pageNum + 1} of {totalPages} - Continued...
+            </div>
+          </>
         )}
       </div>
     );

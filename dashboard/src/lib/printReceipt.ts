@@ -66,6 +66,9 @@ export function printReceiptElement(receiptEl: HTMLElement) {
     break-inside: avoid;
   }
   .receipt-page {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 4mm);
     page-break-after: always;
     page-break-inside: avoid;
     break-after: page;
