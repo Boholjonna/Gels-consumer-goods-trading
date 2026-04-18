@@ -47,3 +47,6 @@ settings.json
 # Data files (CSV, XLSX, chat replays)
 *.csv
 *.chatreplay.json
+
+# Local Netlify folder
+.netlify
