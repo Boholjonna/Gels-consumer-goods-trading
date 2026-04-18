@@ -10,9 +10,6 @@
     "runtimeVersion": {
       "policy": "appVersion"
     },
-    "updates": {
-      "url": "https://u.expo.dev/6f387942-2662-4786-85fa-ea741b0c5e60"
-    },
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
@@ -24,7 +21,13 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D1F33"
       },
-      "package": "com.gauciv.posapp"
+      "package": "com.gauciv.posapp",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -44,8 +47,13 @@
         "origin": false
       },
       "eas": {
-        "projectId": "6f387942-2662-4786-85fa-ea741b0c5e60"
+        "projectId": "aa7d9f6c-a86d-47e7-8aa9-4ed695fcaaef"
       }
-    }
+    },
+    "owner": "bettermeapp",
+    "updates": {
+      "url": "https://u.expo.dev/aa7d9f6c-a86d-47e7-8aa9-4ed695fcaaef"
+    },
+    "ios": {}
   }
 }
