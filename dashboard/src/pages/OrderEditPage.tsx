@@ -217,7 +217,11 @@ export function OrderEditPage() {
       toast.success('Order updated successfully');
       navigate(`/orders/${id}`);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to update order');
+      const message =
+        typeof err === 'object' && err !== null && 'message' in err && typeof err.message === 'string'
+          ? err.message
+          : 'Failed to update order';
+      setError(message);
     } finally {
       setSubmitting(false);
     }
