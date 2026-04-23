@@ -3,6 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from './supabase';
 import { downloadAllDataForOffline } from '@/lib/offline-cache';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import type { AuthUser } from '@/types';
 
 const AUTH_USER_CACHE_KEY = 'auth_cached_user';
@@ -11,6 +12,7 @@ interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
   isLoading: boolean;
+  isValidating: boolean;
   isAuthenticated: boolean;
   activate: (code: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -20,6 +22,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   isLoading: true,
+  isValidating: false,
   isAuthenticated: false,
   activate: async () => {},
   signOut: async () => {},
@@ -29,32 +32,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
+  const isOnline = useNetworkStatus();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session?.user) {
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoading(false);
-      }
-    });
+    let isMounted = true;
 
+    async function initializeAuth() {
+      try {
+        // Step 1: Restore session from SecureStore (fast, non-blocking)
+        const { data: { session: restoredSession } } = await supabase.auth.getSession();
+
+        if (!isMounted) return;
+        setSession(restoredSession);
+
+        if (restoredSession?.user) {
+          // Step 2: If offline and have cached user, load immediately (unblock loading)
+          if (!isOnline) {
+            const cachedRaw = await AsyncStorage.getItem(AUTH_USER_CACHE_KEY).catch(() => null);
+            if (cachedRaw) {
+              try {
+                const cachedUser = JSON.parse(cachedRaw) as AuthUser;
+                if (cachedUser.id === restoredSession.user.id && cachedUser.is_active) {
+                  if (isMounted) {
+                    setUser(cachedUser);
+                    setIsLoading(false);
+                  }
+                  return;
+                }
+              } catch {}
+            }
+            // No valid cache available, will show login
+            if (isMounted) setIsLoading(false);
+            return;
+          }
+
+          // Step 3: Online - fetch fresh profile (non-blocking background fetch)
+          if (isMounted) setIsValidating(true);
+          await fetchProfile(restoredSession.user.id, true);
+          if (isMounted) setIsValidating(false);
+        } else {
+          if (isMounted) setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+        if (isMounted) setIsLoading(false);
+      }
+    }
+
+    // Initialize auth on mount
+    initializeAuth();
+
+    // Subscribe to auth state changes (for logout/new login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
       setSession(session);
       if (session?.user) {
-        setIsLoading(true);
-        fetchProfile(session.user.id);
+        setIsValidating(true);
+        fetchProfile(session.user.id, isOnline).finally(() => {
+          if (isMounted) setIsValidating(false);
+        });
       } else {
         setUser(null);
         setIsLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [isOnline]);
 
-  async function fetchProfile(userId: string, retries = 3) {
+  async function fetchProfile(userId: string, isOnlineNow: boolean, retries = 3) {
+    // If offline, skip network call and use cache immediately (non-blocking)
+    if (!isOnlineNow) {
+      const cachedRaw = await AsyncStorage.getItem(AUTH_USER_CACHE_KEY).catch(() => null);
+      if (cachedRaw) {
+        try {
+          const cachedUser = JSON.parse(cachedRaw) as AuthUser;
+          if (cachedUser.id === userId && cachedUser.is_active) {
+            setUser(cachedUser);
+            setIsLoading(false);
+            return;
+          }
+        } catch {}
+      }
+      // No cache available offline
+      setIsLoading(false);
+      return;
+    }
+
+    // Online: fetch with retry logic
     for (let i = 0; i < retries; i++) {
       try {
         const { data, error } = await supabase
@@ -103,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           } satisfies AuthUser)
         ).catch(() => {});
         setIsLoading(false);
-        // Download all data for offline use after successful login
+        // Download all data for offline use after successful profile fetch
         downloadAllDataForOffline().catch(() => {});
         return;
       } catch (error) {
@@ -123,12 +193,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (isNetworkError) {
             const cachedRaw = await AsyncStorage.getItem(AUTH_USER_CACHE_KEY).catch(() => null);
             if (cachedRaw) {
-              const cachedUser = JSON.parse(cachedRaw) as AuthUser;
-              if (cachedUser.id === userId && cachedUser.is_active) {
-                setUser(cachedUser);
-                setIsLoading(false);
-                return;
-              }
+              try {
+                const cachedUser = JSON.parse(cachedRaw) as AuthUser;
+                if (cachedUser.id === userId && cachedUser.is_active) {
+                  setUser(cachedUser);
+                  setIsLoading(false);
+                  return;
+                }
+              } catch {}
             }
 
             const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -235,6 +307,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         session,
         isLoading,
+        isValidating,
         isAuthenticated: !!user && !!session,
         activate,
         signOut,
