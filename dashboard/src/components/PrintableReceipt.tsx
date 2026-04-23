@@ -243,7 +243,7 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
   if (totalPages <= 1) {
     // Single page receipt
     return (
-      <div id="printable-receipt" style={s.root}>
+      <div id="printable-receipt" className="receipt-container" style={s.root}>
         {/* Header - Company Info */}
         <div className="receipt-section" style={{ textAlign: 'left', marginBottom: '3px' }}>
           <div style={s.companyName}>{companyName}</div>
