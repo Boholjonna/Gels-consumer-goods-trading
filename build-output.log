@@ -1,0 +1,10 @@
+★ eas-cli@18.7.0 is now available.
+To upgrade, run:
+npm install -g eas-cli
+Proceeding with outdated version.
+
+You are on eas-cli@16.28.0 which does not satisfy the CLI version constraint defined in eas.json (>= 18.0.0).
+
+This error probably means that you need update your eas-cli to a newer version.
+Run npm install -g eas-cli to update the eas-cli to the latest version.
+    Error: build command failed.

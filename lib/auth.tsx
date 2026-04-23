@@ -8,6 +8,23 @@ import type { AuthUser } from '@/types';
 
 const AUTH_USER_CACHE_KEY = 'auth_cached_user';
 
+function buildOfflineUserFromSession(restoredSession: Session): AuthUser {
+  const metadata = restoredSession.user.user_metadata ?? {};
+  const fallbackName =
+    (typeof metadata.full_name === 'string' && metadata.full_name.trim()) ||
+    (typeof metadata.name === 'string' && metadata.name.trim()) ||
+    restoredSession.user.email ||
+    'Collector';
+
+  return {
+    id: restoredSession.user.id,
+    email: restoredSession.user.email || '',
+    full_name: fallbackName,
+    role: (typeof metadata.role === 'string' && metadata.role) || 'collector',
+    is_active: true,
+  };
+}
+
 interface AuthContextType {
   user: AuthUser | null;
   session: Session | null;
@@ -62,8 +79,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 }
               } catch {}
             }
-            // No valid cache available, will show login
-            if (isMounted) setIsLoading(false);
+            // No valid cache available but session exists: build a minimal local user
+            // so the app stays accessible offline after first successful login.
+            const offlineUser = buildOfflineUserFromSession(restoredSession);
+            await AsyncStorage.setItem(AUTH_USER_CACHE_KEY, JSON.stringify(offlineUser)).catch(() => {});
+            if (isMounted) {
+              setUser(offlineUser);
+              setIsLoading(false);
+            }
             return;
           }
 
@@ -120,6 +143,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch {}
       }
       // No cache available offline
+      if (session?.user?.id === userId) {
+        const offlineUser = buildOfflineUserFromSession(session);
+        setUser(offlineUser);
+        AsyncStorage.setItem(AUTH_USER_CACHE_KEY, JSON.stringify(offlineUser)).catch(() => {});
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(false);
       return;
     }
@@ -205,17 +235,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const { data: { session: currentSession } } = await supabase.auth.getSession();
             if (currentSession?.user?.id === userId) {
-              setUser({
-                id: userId,
-                email: currentSession.user.email || '',
-                full_name:
-                  (typeof currentSession.user.user_metadata?.full_name === 'string' &&
-                    currentSession.user.user_metadata.full_name) ||
-                  currentSession.user.email ||
-                  'Collector',
-                role: 'collector',
-                is_active: true,
-              });
+              const offlineUser = buildOfflineUserFromSession(currentSession);
+              setUser(offlineUser);
+              AsyncStorage.setItem(AUTH_USER_CACHE_KEY, JSON.stringify(offlineUser)).catch(() => {});
               setIsLoading(false);
               return;
             }
