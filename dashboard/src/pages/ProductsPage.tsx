@@ -45,18 +45,16 @@ function CartonDisplay({ stockQty, cartonSize }: { stockQty: number; cartonSize:
     return <span className="text-[10px] text-[#8FAABE]/30">—</span>;
   }
   
-  const cartons = stockQty / cartonSize;
-  const wholeCartons = Math.floor(cartons);
+  const wholeCartons = Math.floor(stockQty / cartonSize);
   const remainder = stockQty % cartonSize;
   
   if (remainder === 0) {
     return <span className="text-[10px] text-[#8FAABE]/70 tabular-nums">{wholeCartons}</span>;
   }
   
-  const percentage = ((remainder / cartonSize) * 100).toFixed(0);
   return (
     <span className="text-[10px] text-[#8FAABE]/70 tabular-nums">
-      {wholeCartons}.{percentage}%
+      {wholeCartons} &amp; {remainder} pcs
     </span>
   );
 }

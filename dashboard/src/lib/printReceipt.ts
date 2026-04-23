@@ -1,4 +1,5 @@
 import { getReceiptPrintFontCss, RECEIPT_FONT_FAMILY, waitForReceiptFonts } from '@/lib/receiptPrintFont';
+import toast from 'react-hot-toast';
 
 /**
  * Prints a receipt by rendering it into a hidden iframe.
@@ -6,25 +7,28 @@ import { getReceiptPrintFontCss, RECEIPT_FONT_FAMILY, waitForReceiptFonts } from
  * for proper rendering of delivery receipts.
  */
 export function printReceiptElement(receiptEl: HTMLElement) {
-  const iframe = document.createElement('iframe');
-  iframe.style.position = 'fixed';
-  iframe.style.left = '-9999px';
-  iframe.style.top = '0';
-  iframe.style.width = '58mm';
-  iframe.style.height = '0';
-  iframe.style.border = 'none';
-  document.body.appendChild(iframe);
+  try {
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-9999px';
+    iframe.style.top = '0';
+    iframe.style.width = '58mm';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
 
-  const doc = iframe.contentDocument || iframe.contentWindow?.document;
-  if (!doc) {
-    document.body.removeChild(iframe);
-    return;
-  }
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      toast.error('Failed to initialize print dialog');
+      return;
+    }
 
-  doc.open();
-  doc.write(`<!DOCTYPE html>
+    doc.open();
+    doc.write(`<!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <style>
   ${getReceiptPrintFontCss()}
   @page {
@@ -87,31 +91,52 @@ export function printReceiptElement(receiptEl: HTMLElement) {
 ${receiptEl.innerHTML}
 </body>
 </html>`);
-  doc.close();
+    doc.close();
 
-  let printed = false;
+    let printed = false;
 
-  const triggerPrint = async () => {
-    if (printed) return;
-    printed = true;
+    const triggerPrint = async () => {
+      if (printed) return;
+      printed = true;
 
-    await waitForReceiptFonts(doc.fonts);
+      try {
+        await waitForReceiptFonts(doc.fonts);
+      } catch (err) {
+        console.warn('Font loading failed, proceeding with print anyway', err);
+      }
 
-    setTimeout(() => {
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
-      // Clean up after print dialog closes
       setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-    }, 100);
-  };
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          toast.success('Print dialog opened');
+        } catch (err) {
+          console.error('Print failed:', err);
+          toast.error('Failed to open print dialog');
+        }
+        // Clean up after print dialog closes
+        setTimeout(() => {
+          try {
+            if (iframe.parentNode) {
+              document.body.removeChild(iframe);
+            }
+          } catch (err) {
+            console.warn('Error removing iframe:', err);
+          }
+        }, 1000);
+      }, 100);
+    };
 
-  iframe.onload = () => {
-    void triggerPrint();
-  };
+    iframe.onload = () => {
+      void triggerPrint();
+    };
 
-  if (doc.readyState === 'complete') {
-    void triggerPrint();
+    // Fallback if iframe loads synchronously
+    if (doc.readyState === 'complete') {
+      void triggerPrint();
+    }
+  } catch (err) {
+    console.error('Print receipt error:', err);
+    toast.error('Failed to prepare receipt for printing');
   }
 }
