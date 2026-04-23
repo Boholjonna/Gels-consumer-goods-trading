@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
-const SUPABASE_HEALTH_URL = `${process.env.EXPO_PUBLIC_SUPABASE_URL}/rest/v1/`;
+import { supabaseUrl } from '@/lib/supabase';
+
+const SUPABASE_HEALTH_URL = `${supabaseUrl}/rest/v1/`;
 
 const CONSECUTIVE_FAILURES_THRESHOLD = 2;
 const POLL_INTERVAL = 30000;
