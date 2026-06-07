@@ -36,6 +36,8 @@ async function getNextTempOrderNumber(): Promise<string> {
 export async function addUnsyncedOrder(data: {
   storeId: string;
   storeName: string;
+  storeAddress?: string | null;
+  storeContactPhone?: string | null;
   items: CartItem[];
   notes?: string;
 }): Promise<UnsyncedOrder> {
@@ -48,6 +50,8 @@ export async function addUnsyncedOrder(data: {
     tempOrderNumber,
     storeId: data.storeId,
     storeName: data.storeName,
+    storeAddress: data.storeAddress || null,
+    storeContactPhone: data.storeContactPhone || null,
     items: data.items.map((i) => ({
       product_id: i.product_id,
       product_name: i.product_name,
@@ -102,13 +106,17 @@ async function saveStoreIdMapping(localId: string, serverId: string): Promise<vo
   await AsyncStorage.setItem(STORE_ID_MAP_KEY, JSON.stringify(map));
 }
 
-async function resolveStoreId(storeId: string, storeName: string): Promise<string> {
+async function resolveStoreId(
+  storeId: string,
+  storeName: string,
+  details?: { address?: string | null; contact_phone?: string | null },
+): Promise<string> {
   if (!storeId.startsWith('local_')) return storeId;
 
   const map = await getStoreIdMap();
   if (map[storeId]) return map[storeId];
 
-  const serverStore = await createStore(storeName);
+  const serverStore = await createStore(storeName, details);
   await saveStoreIdMapping(storeId, serverStore.id);
   return serverStore.id;
 }
@@ -123,7 +131,10 @@ async function syncSingleOrder(
   }
 
   try {
-    const serverStoreId = await resolveStoreId(order.storeId, order.storeName);
+    const serverStoreId = await resolveStoreId(order.storeId, order.storeName, {
+      address: order.storeAddress,
+      contact_phone: order.storeContactPhone,
+    });
     await createOrder({
       store_id: serverStoreId,
       notes: order.notes,

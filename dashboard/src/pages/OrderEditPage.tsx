@@ -50,7 +50,7 @@ export function OrderEditPage() {
         // Fetch order
         const { data: orderData, error: orderError } = await supabase
           .from('orders')
-          .select('*, profiles:collector_id(full_name, email), stores:store_id(name), order_items(*)')
+          .select('*, profiles:collector_id(full_name, email), stores:store_id(name, address, contact_phone), order_items(*)')
           .eq('id', id)
           .single();
         

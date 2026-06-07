@@ -780,7 +780,7 @@ export default function OrdersScreen() {
       {/* Order Detail Modal - Full Viewport */}
       <Modal
         visible={!!selectedOrder}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={() => setSelectedOrder(null)}
       >
         <View className="flex-1 bg-[#0D1F33]" style={{ paddingTop: insets.top }}>
@@ -819,10 +819,26 @@ export default function OrdersScreen() {
                   </Text>
                 </View>
                 {selectedOrder.stores?.name && (
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center gap-2 mb-2">
                     <Ionicons name="storefront-outline" size={14} color="#8FAABE" />
                     <Text className="text-sm text-[#8FAABE]">
                       {selectedOrder.stores.name}
+                    </Text>
+                  </View>
+                )}
+                {(selectedOrder.delivery_address || selectedOrder.stores?.address) && (
+                  <View className="flex-row items-center gap-2 mb-2">
+                    <Ionicons name="location-outline" size={14} color="#8FAABE" />
+                    <Text className="text-sm text-[#8FAABE] flex-1">
+                      {selectedOrder.delivery_address || selectedOrder.stores?.address}
+                    </Text>
+                  </View>
+                )}
+                {selectedOrder.stores?.contact_phone && (
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="call-outline" size={14} color="#8FAABE" />
+                    <Text className="text-sm text-[#8FAABE]">
+                      {selectedOrder.stores.contact_phone}
                     </Text>
                   </View>
                 )}

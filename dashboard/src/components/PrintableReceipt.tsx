@@ -3,6 +3,7 @@ import type { Order } from '@/types';
 import { useCompanyProfile } from '@/hooks/useCompanyProfile';
 import { supabase } from '@/lib/supabase';
 import { RECEIPT_FONT_FAMILY } from '@/lib/receiptPrintFont';
+import { splitOrderItemsByUnit } from '@/lib/splitOrderItemsByUnit';
 
 interface CompanyOverride {
   company_name?: string | null;
@@ -160,44 +161,30 @@ const s = {
   },
 } as const;
 
-interface OrderItemWithCarton {
-  id: string;
-  order_id: string;
-  product_id: string;
-  product_name: string;
-  quantity: number;
-  unit_price: number;
-  line_total: number;
-  created_at: string;
-  carton_size?: number | null;
-}
-
 const ITEMS_PER_PAGE = 15;
 
 export function PrintableReceipt({ order, companyOverride }: PrintableReceiptProps) {
   const { profile } = useCompanyProfile();
-  const [itemsWithCartons, setItemsWithCartons] = useState<OrderItemWithCarton[]>([]);
+  const [splitItems, setSplitItems] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchCartonSizes() {
       if (!order.order_items || order.order_items.length === 0) return;
-      
+
       const productIds = order.order_items.map(item => item.product_id);
       const { data } = await supabase
         .from('products')
         .select('id, carton_size')
         .in('id', productIds);
-      
+
       const cartonMap = new Map(data?.map(p => [p.id, p.carton_size]) || []);
-      
-      const enrichedItems = order.order_items.map(item => ({
-        ...item,
-        carton_size: cartonMap.get(item.product_id) || null,
-      }));
-      
-      setItemsWithCartons(enrichedItems);
+
+      // Split items by unit type
+      const cartonSizeMap = Object.fromEntries(cartonMap);
+      const split = splitOrderItemsByUnit(order.order_items, cartonSizeMap);
+      setSplitItems(split);
     }
-    
+
     fetchCartonSizes();
   }, [order.order_items]);
 
@@ -215,16 +202,8 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
     return `${month}/${day}/${year}`;
   };
 
-  // Format quantity with carton conversion
-  const formatQuantityWithCarton = (qty: number, cartonSize: number | null) => {
-    if (!cartonSize || cartonSize <= 0) {
-      return `${qty}pcs`;
-    }
-    
-    const cartons = qty / cartonSize;
-    const formattedCartons = cartons % 1 === 0 ? cartons.toFixed(0) : cartons.toFixed(1);
-    
-    return `${qty}pcs(${formattedCartons}ctn)`;
+  const formatSplitQuantity = (qty: number, unit: 'ctn' | 'pcs') => {
+    return unit === 'ctn' ? `${qty} ctn` : `${qty} pcs`;
   };
 
   // Format currency without currency symbol, just comma separator
@@ -235,7 +214,7 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
     });
   };
 
-  const items = itemsWithCartons.length > 0 ? itemsWithCartons : (order.order_items?.map(item => ({ ...item, carton_size: null })) || []);
+  const items = splitItems.length > 0 ? splitItems : [];
   const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
   
   console.log('PrintableReceipt - Total items:', items.length, 'Total pages:', totalPages);
@@ -274,6 +253,10 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
           {order.delivery_address || order.stores?.address || '_________________'}
         </div>
         <div style={s.infoRow}>
+          <span style={s.infoLabel}>Contact No: </span>
+          {order.stores?.contact_phone || '_________________'}
+        </div>
+        <div style={s.infoRow}>
           <span style={s.infoLabel}>TERMS: ________</span>
         </div>
 
@@ -288,10 +271,10 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
+            {items.map((item, idx) => (
+              <tr key={`${item.id}-${item.unit}-${idx}`}>
                 <td style={s.tdLeft}>{item.product_name}</td>
-                <td style={s.tdCenter}>{formatQuantityWithCarton(item.quantity, item.carton_size || null)}</td>
+                <td style={s.tdCenter}>{formatSplitQuantity(item.display_quantity, item.unit)}</td>
                 <td style={s.tdRight}>{formatPrice(item.unit_price)}</td>
                 <td style={s.tdRight}>{formatPrice(item.line_total)}</td>
               </tr>
@@ -376,6 +359,10 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
           {order.delivery_address || order.stores?.address || '_________________'}
         </div>
         <div style={s.infoRow}>
+          <span style={s.infoLabel}>Contact No: </span>
+          {order.stores?.contact_phone || '_________________'}
+        </div>
+        <div style={s.infoRow}>
           <span style={s.infoLabel}>TERMS: ________</span>
         </div>
 
@@ -390,10 +377,10 @@ export function PrintableReceipt({ order, companyOverride }: PrintableReceiptPro
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((item) => (
-              <tr key={item.id}>
+            {pageItems.map((item, idx) => (
+              <tr key={`${item.id}-${item.unit}-${idx}`}>
                 <td style={s.tdLeft}>{item.product_name}</td>
-                <td style={s.tdCenter}>{formatQuantityWithCarton(item.quantity, item.carton_size || null)}</td>
+                <td style={s.tdCenter}>{formatSplitQuantity(item.display_quantity, item.unit)}</td>
                 <td style={s.tdRight}>{formatPrice(item.unit_price)}</td>
                 <td style={s.tdRight}>{formatPrice(item.line_total)}</td>
               </tr>

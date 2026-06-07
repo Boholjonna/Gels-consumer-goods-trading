@@ -56,23 +56,32 @@ export default function CartScreen() {
   const draftCount = getDraftItemCount();
   const draftSubtotal = getDraftSubtotal();
 
-  function handleAddCustomStore(name: string) {
+  function handleAddCustomStore(details: { name: string; address?: string | null; contact_phone?: string | null }) {
     // Save store locally only - will sync to server on submit
-    const store = addLocalStore(name);
+    const store = addLocalStore(details.name, {
+      address: details.address,
+      contact_phone: details.contact_phone,
+    });
     if (draftItems.length > 0) {
-      saveOrderForStore(store.id, store.name, draftItems, notes || undefined);
+      saveOrderForStore(store.id, store.name, draftItems, notes || undefined, {
+        address: store.address,
+        contact_phone: store.contact_phone,
+      });
       clearDraft();
       setNotes('');
     }
     setShowStoreModal(false);
   }
 
-  function handleSaveToStore(store: { id: string; name: string }) {
+  function handleSaveToStore(store: Store) {
     if (draftItems.length === 0) {
       Alert.alert('No Products', 'Please add at least one product before saving.');
       return;
     }
-    saveOrderForStore(store.id, store.name, draftItems, notes || undefined);
+    saveOrderForStore(store.id, store.name, draftItems, notes || undefined, {
+      address: store.address,
+      contact_phone: store.contact_phone,
+    });
     clearDraft();
     setNotes('');
     setShowStoreModal(false);
@@ -92,6 +101,8 @@ export default function CartScreen() {
         const unsyncedOrder = await queueOrder({
           storeId,
           storeName,
+          storeAddress: order!.storeAddress,
+          storeContactPhone: order!.storeContactPhone,
           items: order!.items,
           notes: order!.notes || undefined,
         });
@@ -116,7 +127,10 @@ export default function CartScreen() {
     try {
       let serverStoreId = storeId;
       if (isLocalStore(storeId)) {
-        const serverStore = await createStore(storeName);
+        const serverStore = await createStore(storeName, {
+          address: order.storeAddress,
+          contact_phone: order.storeContactPhone,
+        });
         serverStoreId = serverStore.id;
       }
 
@@ -531,7 +545,7 @@ export default function CartScreen() {
         stores={stores.filter((s) => s.is_active)}
         localStores={localStores}
         loading={storesLoading}
-        onSelect={(store) => handleSaveToStore({ id: store.id, name: store.name })}
+        onSelect={handleSaveToStore}
         onAddCustom={handleAddCustomStore}
         onRename={handleRenameStore}
         onDelete={handleDeleteStore}
@@ -559,12 +573,14 @@ function StorePickerModal({
   localStores: LocalStore[];
   loading: boolean;
   onSelect: (store: Store) => void;
-  onAddCustom: (name: string) => void;
+  onAddCustom: (details: { name: string; address?: string | null; contact_phone?: string | null }) => void;
   onRename: (storeId: string, newName: string) => Promise<void>;
   onDelete: (storeId: string, storeName: string) => void;
   insets: { top: number; bottom: number };
 }) {
   const [newName, setNewName] = useState('');
+  const [newAddress, setNewAddress] = useState('');
+  const [newContactPhone, setNewContactPhone] = useState('');
   const [query, setQuery] = useState('');
   const [topStores, setTopStores] = useState<{ store_id: string; store_name: string; order_count: number }[]>([]);
   const [topLoading, setTopLoading] = useState(false);
@@ -589,6 +605,8 @@ function StorePickerModal({
 
   function handleClose() {
     setNewName('');
+    setNewAddress('');
+    setNewContactPhone('');
     setQuery('');
     setMenuOpenId(null);
     onClose();
@@ -596,6 +614,8 @@ function StorePickerModal({
 
   function handleSelect(store: Store) {
     setNewName('');
+    setNewAddress('');
+    setNewContactPhone('');
     setQuery('');
     setMenuOpenId(null);
     onSelect(store);
@@ -606,16 +626,24 @@ function StorePickerModal({
     if (store) {
       handleSelect(store);
     } else {
-      onSelect({ id: storeId, name: storeName } as Store);
+      onSelect({ id: storeId, name: storeName, address: null, contact_phone: null } as Store);
       setNewName('');
+      setNewAddress('');
+      setNewContactPhone('');
       setQuery('');
     }
   }
 
   function handleAdd() {
     if (!trimmedNew) return;
-    onAddCustom(trimmedNew);
+    onAddCustom({
+      name: trimmedNew,
+      address: newAddress.trim() || null,
+      contact_phone: newContactPhone.trim() || null,
+    });
     setNewName('');
+    setNewAddress('');
+    setNewContactPhone('');
   }
 
   function openRenameModal(store: Store) {
@@ -632,7 +660,7 @@ function StorePickerModal({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="fade" onRequestClose={handleClose}>
       <View className="flex-1 bg-[#0D1F33]" style={{ paddingTop: insets.top }}>
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-[#1E3F5E]/60">
@@ -675,14 +703,33 @@ function StorePickerModal({
           )}
 
           {/* Create new store */}
-          <View className="flex-row items-center gap-2 mb-5">
-            <Text className="text-sm font-semibold text-[#8FAABE] shrink-0">New Store</Text>
+          <View className="bg-[#162F4D] border border-[#1E3F5E]/60 rounded-xl p-3.5 mb-5">
+            <Text className="text-sm font-semibold text-[#8FAABE] mb-3">New Store</Text>
             <TextInput
-              className="flex-1 bg-[#1A3755] rounded-lg px-3 py-2.5 text-sm text-[#E8EDF2]"
+              className="bg-[#1A3755] rounded-lg px-3 py-2.5 text-sm text-[#E8EDF2] mb-2"
               value={newName}
               onChangeText={setNewName}
-              placeholder="Enter store name"
+              placeholder="Store name"
               placeholderTextColor="#8FAABE66"
+              returnKeyType="next"
+              keyboardAppearance="dark"
+            />
+            <TextInput
+              className="bg-[#1A3755] rounded-lg px-3 py-2.5 text-sm text-[#E8EDF2] mb-2"
+              value={newAddress}
+              onChangeText={setNewAddress}
+              placeholder="Store address"
+              placeholderTextColor="#8FAABE66"
+              returnKeyType="next"
+              keyboardAppearance="dark"
+            />
+            <TextInput
+              className="bg-[#1A3755] rounded-lg px-3 py-2.5 text-sm text-[#E8EDF2] mb-3"
+              value={newContactPhone}
+              onChangeText={setNewContactPhone}
+              placeholder="Contact number"
+              placeholderTextColor="#8FAABE66"
+              keyboardType="phone-pad"
               returnKeyType="done"
               keyboardAppearance="dark"
               onSubmitEditing={handleAdd}
@@ -694,7 +741,7 @@ function StorePickerModal({
               onPress={handleAdd}
               disabled={!trimmedNew}
             >
-              <Text className="text-white text-sm font-bold">Add</Text>
+              <Text className="text-white text-sm font-bold">Add Store & Save Order</Text>
             </TouchableOpacity>
           </View>
 
@@ -709,8 +756,15 @@ function StorePickerModal({
                   key={ls.id}
                   className="flex-row items-center bg-[#162F4D] border border-[#E5C07B]/30 rounded-xl p-3.5 mb-2"
                   onPress={() => {
-                    onSelect({ id: ls.id, name: ls.name } as Store);
+                    onSelect({
+                      id: ls.id,
+                      name: ls.name,
+                      address: ls.address || null,
+                      contact_phone: ls.contact_phone || null,
+                    } as Store);
                     setNewName('');
+                    setNewAddress('');
+                    setNewContactPhone('');
                     setQuery('');
                   }}
                 >
@@ -721,6 +775,12 @@ function StorePickerModal({
                     <Text className="text-sm font-semibold text-[#E8EDF2]" numberOfLines={1}>
                       {ls.name}
                     </Text>
+                    {ls.address ? (
+                      <Text className="text-[10px] text-[#8FAABE]/50" numberOfLines={1}>{ls.address}</Text>
+                    ) : null}
+                    {ls.contact_phone ? (
+                      <Text className="text-[10px] text-[#8FAABE]/50" numberOfLines={1}>{ls.contact_phone}</Text>
+                    ) : null}
                     <Text className="text-[10px] text-[#E5C07B]/60">Saved locally</Text>
                   </View>
                 </TouchableOpacity>
@@ -769,6 +829,12 @@ function StorePickerModal({
                           <Text className="text-sm font-semibold text-[#E8EDF2]" numberOfLines={1}>
                             {store.name}
                           </Text>
+                          {store.address ? (
+                            <Text className="text-[10px] text-[#8FAABE]/50" numberOfLines={1}>{store.address}</Text>
+                          ) : null}
+                          {store.contact_phone ? (
+                            <Text className="text-[10px] text-[#8FAABE]/50" numberOfLines={1}>{store.contact_phone}</Text>
+                          ) : null}
                         </View>
                       </TouchableOpacity>
 

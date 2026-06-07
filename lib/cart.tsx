@@ -8,6 +8,8 @@ const LOCAL_STORES_KEY = 'local_stores';
 type StoreOrder = {
   storeId: string;
   storeName: string;
+  storeAddress?: string | null;
+  storeContactPhone?: string | null;
   items: CartItem[];
   notes?: string;
   savedAt: string;
@@ -16,6 +18,8 @@ type StoreOrder = {
 export type LocalStore = {
   id: string;
   name: string;
+  address?: string | null;
+  contact_phone?: string | null;
   createdAt: string;
 };
 
@@ -40,7 +44,13 @@ interface CartContextType {
 
   // Saved store orders (offline, persisted to AsyncStorage)
   savedOrders: StoreOrder[];
-  saveOrderForStore: (storeId: string, storeName: string, items: CartItem[], notes?: string) => void;
+  saveOrderForStore: (
+    storeId: string,
+    storeName: string,
+    items: CartItem[],
+    notes?: string,
+    storeDetails?: { address?: string | null; contact_phone?: string | null },
+  ) => void;
   removeSavedOrder: (storeId: string) => void;
   getSavedOrderSubtotal: (storeId: string) => number;
   getSavedOrderItemCount: (storeId: string) => number;
@@ -50,7 +60,7 @@ interface CartContextType {
 
   // Local stores (offline, persisted to AsyncStorage)
   localStores: LocalStore[];
-  addLocalStore: (name: string) => LocalStore;
+  addLocalStore: (name: string, details?: { address?: string | null; contact_phone?: string | null }) => LocalStore;
   removeLocalStore: (id: string) => void;
   isLocalStore: (id: string) => boolean;
 
@@ -184,7 +194,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ─── Saved store orders (offline) ────────────────────────────────────
 
   const saveOrderForStore = useCallback(
-    (storeId: string, storeName: string, items: CartItem[], notes?: string) => {
+    (
+      storeId: string,
+      storeName: string,
+      items: CartItem[],
+      notes?: string,
+      storeDetails?: { address?: string | null; contact_phone?: string | null },
+    ) => {
       setSavedOrders((prev) => {
         const existing = prev.find((o) => o.storeId === storeId);
         let updated: StoreOrder[];
@@ -207,11 +223,29 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           }
           updated = prev.map((o) =>
             o.storeId === storeId
-              ? { ...o, items: mergedItems, notes: notes ?? o.notes, savedAt: new Date().toISOString() }
+              ? {
+                  ...o,
+                  storeAddress: storeDetails?.address ?? o.storeAddress,
+                  storeContactPhone: storeDetails?.contact_phone ?? o.storeContactPhone,
+                  items: mergedItems,
+                  notes: notes ?? o.notes,
+                  savedAt: new Date().toISOString(),
+                }
               : o
           );
         } else {
-          updated = [...prev, { storeId, storeName, items, notes, savedAt: new Date().toISOString() }];
+          updated = [
+            ...prev,
+            {
+              storeId,
+              storeName,
+              storeAddress: storeDetails?.address || null,
+              storeContactPhone: storeDetails?.contact_phone || null,
+              items,
+              notes,
+              savedAt: new Date().toISOString(),
+            },
+          ];
         }
         AsyncStorage.setItem(SAVED_ORDERS_KEY, JSON.stringify(updated));
         return updated;
@@ -301,10 +335,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ─── Local stores (offline) ──────────────────────────────────────────
 
   const addLocalStore = useCallback(
-    (name: string): LocalStore => {
+    (name: string, details?: { address?: string | null; contact_phone?: string | null }): LocalStore => {
       const store: LocalStore = {
         id: `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         name: name.trim(),
+        address: details?.address || null,
+        contact_phone: details?.contact_phone || null,
         createdAt: new Date().toISOString(),
       };
       setLocalStores((prev) => {

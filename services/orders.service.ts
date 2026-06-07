@@ -19,7 +19,7 @@ export async function createOrder(data: CreateOrderRequest): Promise<CreateOrder
 export async function getOrders(filters?: OrderFilters): Promise<PaginatedResponse<Order>> {
   let query = supabase
     .from('orders')
-    .select('*, profiles:collector_id(full_name, email), stores:store_id(name), order_items(*)', { count: 'exact' });
+    .select('*, profiles:collector_id(full_name, email), stores:store_id(name, address, contact_phone), order_items(*)', { count: 'exact' });
 
   if (filters?.status) query = query.eq('status', filters.status);
   if (filters?.store_id) query = query.eq('store_id', filters.store_id);
@@ -56,7 +56,7 @@ export async function getOrders(filters?: OrderFilters): Promise<PaginatedRespon
 export async function getOrder(orderId: string): Promise<Order> {
   const { data, error } = await supabase
     .from('orders')
-    .select('*, profiles:collector_id(full_name, email), stores:store_id(name), order_items(*)')
+    .select('*, profiles:collector_id(full_name, email), stores:store_id(name, address, contact_phone), order_items(*)')
     .eq('id', orderId)
     .single();
   if (error) throw new Error(error.message);

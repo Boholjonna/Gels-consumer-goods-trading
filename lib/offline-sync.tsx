@@ -15,6 +15,8 @@ interface OfflineSyncContextType {
   queueOrder: (data: {
     storeId: string;
     storeName: string;
+    storeAddress?: string | null;
+    storeContactPhone?: string | null;
     items: CartItem[];
     notes?: string;
   }) => Promise<UnsyncedOrder>;
@@ -57,6 +59,8 @@ export function OfflineSyncProvider({ children }: { children: React.ReactNode })
     async (data: {
       storeId: string;
       storeName: string;
+      storeAddress?: string | null;
+      storeContactPhone?: string | null;
       items: CartItem[];
       notes?: string;
     }) => {

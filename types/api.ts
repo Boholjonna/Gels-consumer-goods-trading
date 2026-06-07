@@ -29,6 +29,8 @@ export interface UnsyncedOrder {
   tempOrderNumber: string;
   storeId: string;
   storeName: string;
+  storeAddress?: string | null;
+  storeContactPhone?: string | null;
   items: {
     product_id: string;
     product_name: string;

@@ -21,7 +21,10 @@ export async function getStore(storeId: string): Promise<Store> {
   return data as Store;
 }
 
-export async function updateStore(storeId: string, updates: { name?: string }): Promise<Store> {
+export async function updateStore(
+  storeId: string,
+  updates: { name?: string; address?: string | null; contact_phone?: string | null },
+): Promise<Store> {
   const { data, error } = await supabase
     .from('stores')
     .update(updates)
@@ -67,13 +70,21 @@ export async function getTopStores(limit = 5): Promise<{ store_id: string; store
     .slice(0, limit);
 }
 
-export async function createStore(name: string): Promise<Store> {
+export async function createStore(
+  name: string,
+  details?: { address?: string | null; contact_phone?: string | null },
+): Promise<Store> {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('Not authenticated');
 
   const { data, error } = await supabase
     .from('stores')
-    .insert({ name, is_active: true })
+    .insert({
+      name,
+      address: details?.address || null,
+      contact_phone: details?.contact_phone || null,
+      is_active: true,
+    })
     .select()
     .single();
   if (error) throw new Error(error.message);

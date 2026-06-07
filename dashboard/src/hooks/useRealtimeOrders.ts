@@ -19,7 +19,7 @@ export function useRealtimeOrders(options?: UseRealtimeOrdersOptions) {
     try {
       const { data, error: err } = await supabase
         .from('orders')
-        .select('*, profiles:collector_id(full_name, email, nickname), stores:store_id(name), order_items(*)')
+        .select('*, profiles:collector_id(full_name, email, nickname), stores:store_id(name, address, contact_phone), order_items(*)')
         .order('created_at', { ascending: false })
         .limit(300);
 

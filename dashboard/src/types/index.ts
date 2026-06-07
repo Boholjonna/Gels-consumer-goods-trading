@@ -74,7 +74,7 @@ export interface Order {
   created_at: string;
   updated_at: string;
   profiles?: { full_name: string; email: string; nickname?: string | null } | null;
-  stores?: { name: string; address?: string } | null;
+  stores?: { name: string; address?: string | null; contact_phone?: string | null } | null;
   order_items?: OrderItem[];
 }
 
