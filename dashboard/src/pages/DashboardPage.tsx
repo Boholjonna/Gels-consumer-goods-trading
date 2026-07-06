@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { getPricelist } from '@/lib/parsePricelist';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/lib/formatters';
 import { formatDistanceToNow, startOfDay, subDays, endOfDay, startOfWeek } from 'date-fns';
@@ -20,6 +21,7 @@ import {
   Store,
   Plus,
   BarChart3,
+  DollarSign,
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import type { Profile, Product } from '@/types';
@@ -163,6 +165,7 @@ export function DashboardPage() {
   const { orders, loading, error, refetch } = useRealtimeOrders();
   const navigate = useNavigate();
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
+  const [pricelistMap, setPricelistMap] = useState<Record<string, any>>({});
 
   const [collectors, setCollectors] = useState<Profile[]>([]);
   const [collectorsLoading, setCollectorsLoading] = useState(true);
@@ -171,6 +174,11 @@ export function DashboardPage() {
   const [stores, setStores] = useState<{ id: string; name: string }[]>([]);
   const [storesLoading, setStoresLoading] = useState(true);
   const [yesterdayData, setYesterdayData] = useState<{ revenue: number; orders: number; collectors: number } | null>(null);
+
+  // Load pricelist
+  useEffect(() => {
+    getPricelist().then(setPricelistMap);
+  }, []);
 
   useEffect(() => {
     async function fetchYesterday() {
@@ -223,14 +231,28 @@ export function DashboardPage() {
     return orders.filter((o) => new Date(o.created_at) >= monthStart);
   }, [orders, timeRange]);
 
-  const { pendingOrders, todayOrders, rangeRevenue, activeCollectors } = useMemo(() => {
+  const { pendingOrders, todayOrders, rangeRevenue, rangeProfit, activeCollectors } = useMemo(() => {
     const today = new Date().toDateString();
     const pending = orders.filter((o) => o.status === 'pending');
     const todayOrd = orders.filter((o) => new Date(o.created_at).toDateString() === today);
     const revenue = filteredOrders.filter((o) => o.status === 'completed').reduce((sum, o) => sum + o.total_amount, 0);
+    
+    // Calculate profit
+    let profit = 0;
+    for (const order of filteredOrders.filter((o) => o.status === 'completed')) {
+      for (const item of order.order_items || []) {
+        const priceData = pricelistMap[item.product_name];
+        if (priceData) {
+          const profitPerUnit = priceData.retail_price - priceData.withdrawal_price;
+          profit += profitPerUnit * item.quantity;
+        }
+      }
+    }
+    
+    
     const collectorCount = new Set(filteredOrders.map((o) => o.collector_id)).size;
-    return { pendingOrders: pending, todayOrders: todayOrd, rangeRevenue: revenue, activeCollectors: collectorCount };
-  }, [orders, filteredOrders]);
+    return { pendingOrders: pending, todayOrders: todayOrd, rangeRevenue: revenue, rangeProfit: profit, activeCollectors: collectorCount };
+  }, [orders, filteredOrders, pricelistMap]);
 
   const trends = useMemo(() => {
     if (!yesterdayData || timeRange !== 'today') return { revenue: undefined, orders: undefined, collectors: undefined };
@@ -390,6 +412,7 @@ export function DashboardPage() {
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <MetricCard title="Revenue" value={formatCurrency(rangeRevenue)} icon={TrendingUp} accent="bg-[#5B9BD5]/15 text-[#5B9BD5]" trend={trends.revenue} sparkData={hourlyData.revenue} sparkColor="#5B9BD5" />
+          <MetricCard title="Profit" value={formatCurrency(rangeProfit)} icon={DollarSign} accent="bg-[#98C379]/15 text-[#98C379]" />
           <MetricCard title="Orders" value={filteredOrders.length} icon={ShoppingCart} accent="bg-[#7EB8E0]/15 text-[#7EB8E0]" trend={trends.orders} sparkData={hourlyData.orders} sparkColor="#7EB8E0" />
           <MetricCard title="Pending" value={pendingOrders.length} icon={Clock} accent="bg-[#E5C07B]/15 text-[#E5C07B]" />
           <MetricCard title="Collectors" value={activeCollectors} icon={Users} accent="bg-[#98C379]/15 text-[#98C379]" trend={trends.collectors} />

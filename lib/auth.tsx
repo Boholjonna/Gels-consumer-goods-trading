@@ -58,7 +58,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function initializeAuth() {
       try {
         // Step 1: Restore session from SecureStore (fast, non-blocking)
-        const { data: { session: restoredSession } } = await supabase.auth.getSession();
+        const { data: { session: restoredSession }, error: sessionError } = await supabase.auth.getSession();
+
+        // Handle invalid refresh token error
+        if (sessionError?.message?.toLowerCase().includes('refresh token')) {
+          console.warn('Invalid refresh token, clearing session');
+          await supabase.auth.signOut().catch(() => {});
+          await AsyncStorage.removeItem(AUTH_USER_CACHE_KEY).catch(() => {});
+          if (isMounted) setIsLoading(false);
+          return;
+        }
 
         if (!isMounted) return;
         setSession(restoredSession);
@@ -99,6 +108,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error('Auth initialization error:', error);
+        
+        // Handle refresh token errors specifically
+        const errorMsg = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+        if (errorMsg.includes('refresh token')) {
+          console.warn('Invalid refresh token detected, clearing auth state');
+          await supabase.auth.signOut().catch(() => {});
+          await AsyncStorage.removeItem(AUTH_USER_CACHE_KEY).catch(() => {});
+        }
+        
         if (isMounted) setIsLoading(false);
       }
     }
@@ -109,6 +127,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Subscribe to auth state changes (for logout/new login)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
+
+      // Handle token refresh errors
+      if (_event === 'TOKEN_REFRESHED' && !session) {
+        console.warn('Token refresh failed, signing out');
+        setUser(null);
+        setSession(null);
+        setIsLoading(false);
+        AsyncStorage.removeItem(AUTH_USER_CACHE_KEY).catch(() => {});
+        return;
+      }
 
       setSession(session);
       if (session?.user) {

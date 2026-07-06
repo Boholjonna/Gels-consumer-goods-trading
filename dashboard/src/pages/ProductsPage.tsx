@@ -5,7 +5,9 @@ import { useProducts } from '@/hooks/useProducts';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
+import { getPricelist } from '@/lib/parsePricelist';
 import type { Product } from '@/types';
+import type { PriceListMap } from '@/lib/parsePricelist';
 import toast from 'react-hot-toast';
 
 type StatusTab = 'all' | 'active' | 'inactive';
@@ -81,6 +83,12 @@ export function ProductsPage() {
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [pricelistMap, setPricelistMap] = useState<PriceListMap>({});
+
+  // Load pricelist
+  useEffect(() => {
+    getPricelist().then(setPricelistMap);
+  }, []);
 
   useEffect(() => {
     fetchProducts({
@@ -295,6 +303,12 @@ export function ProductsPage() {
                     <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort('price')}>
                       Price <SortIcon column="price" />
                     </th>
+                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                      Withdrawal
+                    </th>
+                    <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">
+                      Retail
+                    </th>
                     <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-[#8FAABE]/60 uppercase tracking-wider cursor-pointer select-none whitespace-nowrap" onClick={() => toggleSort('stock_quantity')}>
                       Qty <SortIcon column="stock_quantity" />
                     </th>
@@ -330,6 +344,18 @@ export function ProductsPage() {
                         <span className="text-[10px] text-[#8FAABE]/50">{product.categories?.name || '—'}</span>
                       </td>
                       <td className="px-3 py-2 text-xs font-semibold text-[#E8EDF2] text-right font-mono tabular-nums">{formatCurrency(product.price)}</td>
+                      <td className="px-3 py-2 text-xs text-[#8FAABE]/70 text-right font-mono tabular-nums hidden lg:table-cell">
+                        {pricelistMap[product.name]?.withdrawal_price 
+                          ? formatCurrency(pricelistMap[product.name].withdrawal_price)
+                          : <span className="text-[#8FAABE]/30">—</span>
+                        }
+                      </td>
+                      <td className="px-3 py-2 text-xs text-[#8FAABE]/70 text-right font-mono tabular-nums hidden lg:table-cell">
+                        {pricelistMap[product.name]?.retail_price 
+                          ? formatCurrency(pricelistMap[product.name].retail_price)
+                          : <span className="text-[#8FAABE]/30">—</span>
+                        }
+                      </td>
                       <td className="px-3 py-2 text-center"><StockBadge qty={product.stock_quantity} /></td>
                       <td className="px-3 py-2 text-center"><CartonDisplay stockQty={product.stock_quantity} cartonSize={product.carton_size} /></td>
                       <td className="px-3 py-2 text-center">

@@ -22,6 +22,7 @@ export default function CollectorLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#0D1F33' },
+        animationEnabled: false,
       }}
     >
       <Stack.Screen name="products" />

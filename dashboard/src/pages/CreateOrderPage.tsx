@@ -50,6 +50,8 @@ export function CreateOrderPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
+  const [editingQuantity, setEditingQuantity] = useState('0');
 
   useEffect(() => {
     async function load() {
@@ -111,6 +113,25 @@ export function CreateOrderPage() {
 
   function removeFromCart(productId: string) {
     setCart((prev) => prev.filter((c) => c.product_id !== productId));
+  }
+
+  function handleQuantityEdit(productId: string, currentQty: number) {
+    setEditingProductId(productId);
+    setEditingQuantity(currentQty.toString());
+  }
+
+  function handleQuantitySave(productId: string) {
+    const newQty = parseInt(editingQuantity, 10);
+    if (!isNaN(newQty) && newQty > 0) {
+      const item = cart.find((c) => c.product_id === productId);
+      if (item && newQty <= item.stock_quantity) {
+        setCart((prev) =>
+          prev.map((c) => c.product_id === productId ? { ...c, quantity: newQty } : c)
+        );
+      }
+    }
+    setEditingProductId(null);
+    setEditingQuantity('0');
   }
 
   async function handleSubmit() {
@@ -267,16 +288,44 @@ export function CreateOrderPage() {
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => updateQty(item.product_id, -1)}
-                        disabled={item.quantity <= 1}
+                        disabled={item.quantity <= 1 || editingProductId === item.product_id}
                         className="w-6 h-6 rounded bg-[#0D1F33] flex items-center justify-center text-[#8FAABE]/50 hover:text-[#E8EDF2] disabled:opacity-30 transition-colors"
                         aria-label="Decrease quantity"
                       >
                         <Minus size={10} />
                       </button>
-                      <span className="text-xs font-semibold text-[#E8EDF2] w-6 text-center tabular-nums">{item.quantity}</span>
+                      {editingProductId === item.product_id ? (
+                        <input
+                          type="number"
+                          min="1"
+                          max={item.stock_quantity}
+                          value={editingQuantity}
+                          onChange={(e) => setEditingQuantity(e.target.value)}
+                          onBlur={() => handleQuantitySave(item.product_id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleQuantitySave(item.product_id);
+                            if (e.key === 'Escape') setEditingProductId(null);
+                          }}
+                          autoFocus
+                          className="w-16 text-center text-xs font-semibold text-[#E8EDF2] bg-[#1e3a5f] border-2 border-[#5B9BD5] rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-[#5B9BD5]/50 tabular-nums number-input-no-spinner"
+                          style={{
+                            MozAppearance: 'textfield' as any,
+                            WebkitAppearance: 'none' as any,
+                            appearance: 'textfield',
+                          }}
+                        />
+                      ) : (
+                        <button
+                          onClick={() => handleQuantityEdit(item.product_id, item.quantity)}
+                          className="min-w-[40px] px-2 py-1 text-xs font-semibold text-[#E8EDF2] bg-[#1e3a5f] border border-[#2e4a6f] rounded tabular-nums hover:border-[#5B9BD5] hover:text-[#5B9BD5] transition-colors"
+                          title="Click to edit quantity"
+                        >
+                          {item.quantity}
+                        </button>
+                      )}
                       <button
                         onClick={() => updateQty(item.product_id, 1)}
-                        disabled={item.quantity >= item.stock_quantity}
+                        disabled={item.quantity >= item.stock_quantity || editingProductId === item.product_id}
                         className="w-6 h-6 rounded bg-[#0D1F33] flex items-center justify-center text-[#8FAABE]/50 hover:text-[#E8EDF2] disabled:opacity-30 transition-colors"
                         aria-label="Increase quantity"
                       >

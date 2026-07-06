@@ -41,6 +41,7 @@ export default function RootLayout() {
                   screenOptions={{
                     headerShown: false,
                     contentStyle: { backgroundColor: '#0D1F33' },
+                    animationEnabled: false,
                   }}
                 />
               </NetworkGuard>

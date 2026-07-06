@@ -1,9 +1,14 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useRealtimeOrders } from '@/hooks/useRealtimeOrders';
+import { useDailyRevenue } from '@/hooks/useDailyRevenue';
+import { useDailyProfit } from '@/hooks/useDailyProfit';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { PrintableReceipt } from '@/components/PrintableReceipt';
+import { RevenueModal } from '@/components/RevenueModal';
+import { ProfitModal } from '@/components/ProfitModal';
 import { printReceiptElement } from '@/lib/printReceipt';
+import { getPricelist } from '@/lib/parsePricelist';
 import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/formatters';
@@ -67,6 +72,9 @@ export function OrdersPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [calendarMonth, setCalendarMonth] = useState<Date>(new Date());
+  const [showRevenueModal, setShowRevenueModal] = useState(false);
+  const [showProfitModal, setShowProfitModal] = useState(false);
+  const [pricelistMap, setPricelistMap] = useState<Record<string, any>>({});
 
   const filterRef = useRef<HTMLDivElement>(null);
   const actionMenuRef = useRef<HTMLDivElement>(null);
@@ -110,6 +118,11 @@ export function OrdersPage() {
       return () => clearTimeout(timer);
     }
   }, [printOrder]);
+
+  // Load pricelist
+  useEffect(() => {
+    getPricelist().then((map) => setPricelistMap(map));
+  }, []);
 
   // --- Derived data ---
   const collectors = useMemo(() => {
@@ -184,6 +197,54 @@ export function OrdersPage() {
 
     return result;
   }, [orders, statusFilter, search, selectedDate, collectorFilter, storeFilter, sortMode]);
+
+  // Calculate revenue and profit
+  const dailyRevenue = useDailyRevenue(filteredOrders);
+  const dailyProfit = useDailyProfit(filteredOrders, pricelistMap);
+
+  // Check if we have data for the selected date
+  const hasOrdersOnDate = filteredOrders.length > 0;
+
+  // Debug logging
+  useEffect(() => {
+    if (hasOrdersOnDate) {
+      // Sample pricelist keys
+      const pricelistKeys = Object.keys(pricelistMap).slice(0, 5);
+      
+      // Get all unique product names from today's orders
+      const orderProducts = filteredOrders
+        .flatMap(o => o.order_items || [])
+        .map(item => item.product_name);
+      
+      const uniqueOrderProducts = [...new Set(orderProducts)];
+      
+      // Find products that are NOT in pricelist
+      const unmatchedProducts = uniqueOrderProducts.filter(
+        productName => !pricelistMap[productName]
+      );
+      
+      // Find products that ARE in pricelist
+      const matchedProducts = uniqueOrderProducts.filter(
+        productName => pricelistMap[productName]
+      );
+      
+      console.log('OrdersPage Debug:', {
+        date: format(selectedDate, 'yyyy-MM-dd'),
+        filteredOrdersCount: filteredOrders.length,
+        pricelistLoaded: Object.keys(pricelistMap).length,
+        samplePricelistKeys: pricelistKeys,
+        uniqueProductsInOrders: uniqueOrderProducts.length,
+        matchedProducts: matchedProducts,
+        unmatchedProducts: unmatchedProducts,
+        totalProfit: dailyProfit.totalProfit,
+        profitBreakdownCount: dailyProfit.productBreakdown.length,
+      });
+      
+      if (unmatchedProducts.length > 0) {
+        console.warn('⚠️ Products in orders but NOT in pricelist:', unmatchedProducts);
+      }
+    }
+  }, [filteredOrders, pricelistMap, dailyProfit, hasOrdersOnDate, selectedDate]);
 
   // Counts per status (within current date)
   const statusCounts = useMemo(() => {
@@ -475,6 +536,26 @@ export function OrdersPage() {
           >
             <ChevronRight size={16} />
           </button>
+
+          {/* Revenue button */}
+          {hasOrdersOnDate && dailyRevenue.totalRevenue > 0 && (
+            <button
+              onClick={() => setShowRevenueModal(true)}
+              className="px-3 py-1 text-xs font-medium rounded-md bg-[#5B9BD5]/10 border border-[#5B9BD5]/30 text-[#5B9BD5] hover:bg-[#5B9BD5]/20 transition-colors"
+            >
+              Total Revenue: {formatCurrency(dailyRevenue.totalRevenue)}
+            </button>
+          )}
+
+          {/* Profit button - show even if 0 when orders exist */}
+          {hasOrdersOnDate && Object.keys(pricelistMap).length > 0 && (
+            <button
+              onClick={() => setShowProfitModal(true)}
+              className="px-3 py-1 text-xs font-medium rounded-md bg-[#98C379]/10 border border-[#98C379]/30 text-[#98C379] hover:bg-[#98C379]/20 transition-colors"
+            >
+              Profit: {formatCurrency(dailyProfit.totalProfit)}
+            </button>
+          )}
 
           {/* Calendar dropdown */}
           {showCalendar && (() => {
@@ -899,6 +980,24 @@ export function OrdersPage() {
           <PrintableReceipt order={printOrder} />
         </div>
       )}
+
+      {/* Revenue Modal */}
+      <RevenueModal
+        isOpen={showRevenueModal}
+        onClose={() => setShowRevenueModal(false)}
+        productBreakdown={dailyRevenue.productBreakdown}
+        totalRevenue={dailyRevenue.totalRevenue}
+        selectedDate={selectedDate}
+      />
+
+      {/* Profit Modal */}
+      <ProfitModal
+        isOpen={showProfitModal}
+        onClose={() => setShowProfitModal(false)}
+        productBreakdown={dailyProfit.productBreakdown}
+        totalProfit={dailyProfit.totalProfit}
+        selectedDate={selectedDate}
+      />
     </div>
   );
 }

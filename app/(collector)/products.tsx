@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   FlatList,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   useWindowDimensions,
   Image,
+  Keyboard,
 } from 'react-native';
 import { Text, TextInput } from '@/components/ScaledText';
 import { router } from 'expo-router';
@@ -16,6 +17,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/lib/cart';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useDailySalesTotal } from '@/hooks/useDailySalesTotal';
 import { formatCurrency, formatShortDate } from '@/lib/formatters';
 import type { Product } from '@/types';
 
@@ -39,6 +41,7 @@ export default function ProductsScreen() {
   } = useProducts();
   const { addItem, updateQuantity, draftItems, getDraftItemCount, getDraftSubtotal, savedOrders } = useCart();
   const { unreadCount } = useNotifications();
+  const { totalSales, loading: loadingSales } = useDailySalesTotal();
   const insets = useSafeAreaInsets();
   const draftCount = getDraftItemCount();
   const draftTotal = getDraftSubtotal();
@@ -49,6 +52,16 @@ export default function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(0);
   const [cartons, setCartons] = useState(0);
+  const quantityInputRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (selectedProduct && quantityInputRef.current) {
+      setTimeout(() => {
+        quantityInputRef.current?.focus();
+        Keyboard.show();
+      }, 100);
+    }
+  }, [selectedProduct]);
 
   function getCartQuantity(productId: string): number {
     const item = draftItems.find((i) => i.product_id === productId);
@@ -147,6 +160,25 @@ export default function ProductsScreen() {
             <TouchableOpacity onPress={() => router.push('/(collector)/settings')}>
               <Ionicons name="person-circle-outline" size={24} color="#8FAABE" />
             </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+
+      {/* Daily Sales Card */}
+      <View className="bg-[#162F4D] px-4 pt-3 pb-2 border-b border-[#1E3F5E]/30">
+        <View className="bg-[#5B9BD5]/10 border border-[#5B9BD5]/30 rounded-lg px-4 py-3 flex-row items-center gap-3">
+          <Ionicons name="trending-up" size={20} color="#5B9BD5" />
+          <View className="flex-1">
+            <Text className="text-[10px] text-[#8FAABE]/50 font-semibold uppercase tracking-wider">
+              Today's Sales
+            </Text>
+            {loadingSales ? (
+              <Text className="text-sm text-[#5B9BD5] font-bold mt-1">Loading...</Text>
+            ) : (
+              <Text className="text-lg text-[#5B9BD5] font-bold mt-1">
+                {formatCurrency(totalSales)}
+              </Text>
+            )}
           </View>
         </View>
       </View>
@@ -344,7 +376,7 @@ export default function ProductsScreen() {
       {/* Quantity Modal - Full Viewport */}
       <Modal
         visible={!!selectedProduct}
-        animationType="slide"
+        animationType="fade"
         onRequestClose={closeModal}
       >
         <View className="flex-1 bg-[#0D1F33]" style={{ paddingTop: insets.top }}>
@@ -400,6 +432,7 @@ export default function ProductsScreen() {
                 </TouchableOpacity>
 
                 <TextInput
+                  ref={quantityInputRef}
                   className="text-3xl font-bold text-center text-[#E8EDF2]"
                   style={{ minWidth: 72 }}
                   value={quantity.toString()}
