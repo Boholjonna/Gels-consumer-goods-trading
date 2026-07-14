@@ -56,7 +56,7 @@ export function useDailyProfit(orders: Order[], pricelistMap: PriceListMap): Dai
 
     return {
       totalProfit,
-      productBreakdown: productBreakdown.sort((a, b) => b.total_profit - a.total_profit),
+      productBreakdown: productBreakdown.sort((a, b) => b.quantity - a.quantity),
     };
   }, [orders, pricelistMap]);
 }
