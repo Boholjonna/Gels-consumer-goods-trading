@@ -2,6 +2,23 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Improve touch responsiveness - removes 300ms tap delay on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Make buttons and interactive elements more responsive */
+button,
+a,
+[role="button"],
+[onclick] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
 /* Hide number input spinners (up/down arrows) */
 input[type='number']::-webkit-inner-spin-button,
 input[type='number']::-webkit-outer-spin-button {

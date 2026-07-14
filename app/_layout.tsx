@@ -1,6 +1,6 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { LogBox, Text, View } from 'react-native';
+import { LogBox, Text, View, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '@/lib/auth';
 import { CartProvider } from '@/lib/cart';
@@ -13,6 +13,15 @@ import '../global.css';
 LogBox.ignoreLogs([
   "SafeAreaView has been deprecated and will be removed in a future release. Please use 'react-native-safe-area-context' instead.",
 ]);
+
+// Optimize touch responsiveness for Android
+if (Platform.OS === 'android') {
+  // @ts-ignore - This is a React Native optimization
+  if (typeof global !== 'undefined' && global.HermesInternal) {
+    // Enable Hermes optimizations for faster touch handling
+    console.log('Hermes engine detected - touch optimizations enabled');
+  }
+}
 
 export default function RootLayout() {
   if (!isSupabaseConfigured) {

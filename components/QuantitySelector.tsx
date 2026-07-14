@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { TOUCH_OPTIMIZATION } from '@/lib/touch-optimization';
 
 interface QuantitySelectorProps {
   value: number;
@@ -49,6 +50,9 @@ export function QuantitySelector({ value, max, onChange }: QuantitySelectorProps
           setInputValue(String(newVal));
         }}
         disabled={value <= 0}
+        activeOpacity={TOUCH_OPTIMIZATION.activeOpacity}
+        delayPressIn={TOUCH_OPTIMIZATION.delayPressIn}
+        delayPressOut={TOUCH_OPTIMIZATION.delayPressOut}
       >
         <Text className="text-xl font-bold text-white">−</Text>
       </TouchableOpacity>
@@ -74,6 +78,9 @@ export function QuantitySelector({ value, max, onChange }: QuantitySelectorProps
           setInputValue(String(newVal));
         }}
         disabled={value >= max}
+        activeOpacity={TOUCH_OPTIMIZATION.activeOpacity}
+        delayPressIn={TOUCH_OPTIMIZATION.delayPressIn}
+        delayPressOut={TOUCH_OPTIMIZATION.delayPressOut}
       >
         <Text className="text-xl font-bold text-white">+</Text>
       </TouchableOpacity>

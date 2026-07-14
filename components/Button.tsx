@@ -22,6 +22,10 @@ export function Button({ title, variant = 'primary', className, ...props }: Butt
   return (
     <TouchableOpacity
       className={`${baseClasses} ${variantClasses[variant]} ${className || ''}`}
+      activeOpacity={0.7}
+      delayPressIn={0}
+      delayPressOut={0}
+      delayLongPress={500}
       {...props}
     >
       <Text className={`font-semibold text-base ${textVariantClasses[variant]}`}>
