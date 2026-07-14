@@ -199,7 +199,7 @@ export function OrdersPage() {
   }, [orders, statusFilter, search, selectedDate, collectorFilter, storeFilter, sortMode]);
 
   // Calculate revenue and profit
-  const dailyRevenue = useDailyRevenue(filteredOrders);
+  const dailyRevenue = useDailyRevenue(filteredOrders, pricelistMap);
   const dailyProfit = useDailyProfit(filteredOrders, pricelistMap);
 
   // Check if we have data for the selected date

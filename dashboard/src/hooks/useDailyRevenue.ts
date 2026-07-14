@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Order } from '@/types';
+import type { PriceListMap } from '@/lib/parsePricelist';
 
 export interface DailyRevenueData {
   totalRevenue: number;
@@ -10,13 +11,18 @@ export interface DailyRevenueData {
   }>;
 }
 
-export function useDailyRevenue(orders: Order[]): DailyRevenueData {
+export function useDailyRevenue(orders: Order[], pricelistMap?: PriceListMap): DailyRevenueData {
   return useMemo(() => {
     const productMap = new Map<string, { quantity: number; revenue: number }>();
     let totalRevenue = 0;
 
     for (const order of orders) {
       for (const item of order.order_items || []) {
+        // If pricelist is provided, only include products that exist in it (for consistency with profit)
+        if (pricelistMap && !pricelistMap[item.product_name]) {
+          continue;
+        }
+        
         totalRevenue += item.line_total;
 
         const existing = productMap.get(item.product_name);
@@ -42,7 +48,7 @@ export function useDailyRevenue(orders: Order[]): DailyRevenueData {
 
     return {
       totalRevenue,
-      productBreakdown: productBreakdown.sort((a, b) => b.revenue - a.revenue),
+      productBreakdown: productBreakdown.sort((a, b) => b.quantity - a.quantity),
     };
-  }, [orders]);
+  }, [orders, pricelistMap]);
 }
