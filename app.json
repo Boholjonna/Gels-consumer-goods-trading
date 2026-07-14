@@ -2,7 +2,7 @@
   "expo": {
     "name": "pos-app",
     "slug": "pos-app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "posapp",
@@ -16,7 +16,7 @@
       "backgroundColor": "#0D1F33"
     },
     "android": {
-      "versionCode": 3,
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0D1F33"
